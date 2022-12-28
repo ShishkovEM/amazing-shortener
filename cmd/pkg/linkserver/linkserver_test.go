@@ -184,7 +184,7 @@ func TestLinkServer_createLinkHandlerPositive(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if string(resBody) == strings.Trim(string(resBody), "http://localhost:8080/") {
+			if string(resBody) == strings.TrimPrefix(string(resBody), "http://localhost:8080/") {
 				t.Errorf("Expected body %s, got %s", "http://localhost:8080/{id}", w.Body.String())
 			}
 			if res.Header.Get("Content-Type") != tt.want.contentType {
