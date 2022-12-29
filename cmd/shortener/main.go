@@ -2,16 +2,15 @@ package main
 
 import (
 	"github.com/ShishkovEM/amazing-shortener/cmd/pkg/linkserver"
-	"log"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-
-	mux := http.NewServeMux()
+	router := gin.Default()
 	server := linkserver.New()
 
-	mux.HandleFunc("/", server.LinkHandler)
+	router.POST("/", server.CreateLinkHandler)
+	router.GET("/:id", server.GetLinkHandler)
 
-	log.Fatal(http.ListenAndServe("localhost:8080", mux))
+	router.Run("localhost:8080")
 }
