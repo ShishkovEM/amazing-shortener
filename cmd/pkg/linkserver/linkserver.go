@@ -48,7 +48,7 @@ func (ls *LinkServer) CreateLinkHandler(c *gin.Context) {
 		return
 	}
 
-	if !isValidUrl(string(LongURL)) {
+	if !isValidURL(string(LongURL)) {
 		c.String(http.StatusBadRequest, "Invalid URL creation request handled. Input URL: "+string(LongURL))
 		return
 	}
@@ -71,7 +71,7 @@ func (ls *LinkServer) GetLinkHandler(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, link.Original)
 }
 
-func isValidUrl(input string) bool {
+func isValidURL(input string) bool {
 	_, err := url.ParseRequestURI(input)
 	if err != nil {
 		return false
