@@ -1,4 +1,4 @@
-package linkserver
+package linkservice
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/ShishkovEM/amazing-shortener/internal/app/linkstore"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 	testedInvalidURL = "not URL at all"
 )
 
-func testHTTPResponse(t *testing.T, r *gin.Engine, req *http.Request, f func(w *httptest.ResponseRecorder) bool) {
+func testHTTPResponse(t *testing.T, r chi.Router, req *http.Request, f func(w *httptest.ResponseRecorder) bool) {
 
 	w := httptest.NewRecorder()
 
@@ -30,33 +30,35 @@ func testHTTPResponse(t *testing.T, r *gin.Engine, req *http.Request, f func(w *
 }
 
 func TestLinkServer_CreateLinkHandlerPositive(t *testing.T) {
-	storage := linkstore.New()
-	ls := NewLinkServer(storage)
+	storage := linkstore.NewLinkStore()
+	ls := NewLinkService(storage)
+	r := ls.Routes()
 
 	req, err := http.NewRequest("POST", "/", bytes.NewBuffer([]byte(testedLongURL)))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testHTTPResponse(t, ls.router, req, func(w *httptest.ResponseRecorder) bool {
+	testHTTPResponse(t, r, req, func(w *httptest.ResponseRecorder) bool {
 		statusOK := w.Code == http.StatusCreated
 		p, err := io.ReadAll(w.Body)
-		pageOK := err == nil && strings.Contains(string(p), "http://localhost:8080/")
+		pageOK := err == nil && strings.Contains(string(p), ls.Run(ls.serverAddress, ls.serverPort))
 
 		return statusOK && pageOK
 	})
 }
 
 func TestLinkServer_CreateLinkHandlerWithInvalidURL(t *testing.T) {
-	storage := linkstore.New()
-	ls := NewLinkServer(storage)
+	storage := linkstore.NewLinkStore()
+	ls := NewLinkService(storage)
+	r := ls.Routes()
 
 	req, err := http.NewRequest("POST", "/", bytes.NewBuffer([]byte(testedInvalidURL)))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testHTTPResponse(t, ls.router, req, func(w *httptest.ResponseRecorder) bool {
+	testHTTPResponse(t, r, req, func(w *httptest.ResponseRecorder) bool {
 		statusOK := w.Code == http.StatusBadRequest
 		p, err := io.ReadAll(w.Body)
 		pageOK := err == nil && strings.Contains(string(p), "Invalid URL creation request handled. Input URL: ")
@@ -66,8 +68,9 @@ func TestLinkServer_CreateLinkHandlerWithInvalidURL(t *testing.T) {
 }
 
 func TestLinkServer_GetLinkHandlerPositive(t *testing.T) {
-	storage := linkstore.New()
-	ls := NewLinkServer(storage)
+	storage := linkstore.NewLinkStore()
+	ls := NewLinkService(storage)
+	r := ls.Routes()
 
 	short := ls.store.CreateLink(testedLongURL)
 
@@ -76,7 +79,7 @@ func TestLinkServer_GetLinkHandlerPositive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testHTTPResponse(t, ls.router, req, func(w *httptest.ResponseRecorder) bool {
+	testHTTPResponse(t, r, req, func(w *httptest.ResponseRecorder) bool {
 		statusOK := w.Code == http.StatusTemporaryRedirect
 		p := w.Header().Get("Location")
 		pageOK := err == nil && p == testedLongURL
@@ -86,15 +89,16 @@ func TestLinkServer_GetLinkHandlerPositive(t *testing.T) {
 }
 
 func TestLinkServer_GetLinkHandlerNegative(t *testing.T) {
-	storage := linkstore.New()
-	ls := NewLinkServer(storage)
+	storage := linkstore.NewLinkStore()
+	ls := NewLinkService(storage)
+	r := ls.Routes()
 
 	req, err := http.NewRequest("GET", "/wrongURL", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testHTTPResponse(t, ls.router, req, func(w *httptest.ResponseRecorder) bool {
+	testHTTPResponse(t, r, req, func(w *httptest.ResponseRecorder) bool {
 		statusOK := w.Code == http.StatusNotFound
 		p := w.Header().Get("Location")
 		pageOK := err == nil && p != testedLongURL

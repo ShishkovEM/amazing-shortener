@@ -8,7 +8,7 @@ const (
 
 func TestCreateAndGetLink(t *testing.T) {
 	// Создаём и сохраняем запись об одной ссылке
-	ls := New()
+	ls := NewLinkStore()
 	short := ls.CreateLink(testedLongURL)
 
 	// Получаем ссылку по short. Ничего не получаем по другому аргументу

@@ -23,8 +23,8 @@ type LinkStore struct {
 	nextID int
 }
 
-// New Создаёт новый LinkStore
-func New() *LinkStore {
+// NewLinkStore Создаёт новый LinkStore
+func NewLinkStore() *LinkStore {
 	ls := &LinkStore{}
 	ls.links = make(map[string]Link)
 	ls.nextID = 0
