@@ -16,7 +16,7 @@ const (
 
 func main() {
 	linkStorage := linkstore.NewLinkStore()
-	linkService := linkservice.NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort)
+	linkService := linkservice.NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	router := chi.NewRouter()
 	router.Mount("/", linkService.Routes())
 	err := http.ListenAndServe(
