@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/ShishkovEM/amazing-shortener/cmd/pkg/linkservice"
-	"github.com/ShishkovEM/amazing-shortener/internal/app/linkstore"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/service"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
 )
 
 const (
@@ -15,15 +15,15 @@ const (
 )
 
 func main() {
-	linkStorage := linkstore.NewLinkStore()
-	linkService := linkservice.NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
+	linkStorage := storage.NewLinkStore()
+	linkService := service.NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	router := chi.NewRouter()
 	router.Mount("/", linkService.Routes())
 	err := http.ListenAndServe(
 		linkServiceHost+":"+linkServicePort, router,
 	)
 	if err != nil {
-		log.Print("Error starting linkService")
+		log.Printf("Error starting linkService: %s\n", err)
 		return
 	}
 }

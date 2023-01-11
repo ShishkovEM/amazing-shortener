@@ -1,4 +1,4 @@
-package linkstore
+package storage
 
 import "testing"
 

@@ -1,4 +1,4 @@
-package linkservice
+package service
 
 import (
 	"io"
@@ -7,17 +7,17 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/ShishkovEM/amazing-shortener/internal/app/linkstore"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type LinkService struct {
 	serviceAddress string
-	store          *linkstore.LinkStore
+	store          *storage.LinkStore
 }
 
-func NewLinkService(store *linkstore.LinkStore, serviceAddress string) *LinkService {
+func NewLinkService(store *storage.LinkStore, serviceAddress string) *LinkService {
 	ls := &LinkService{
 		serviceAddress: serviceAddress,
 		store:          store,
@@ -30,9 +30,7 @@ func (ls *LinkService) Routes() chi.Router {
 
 	r.Post("/", ls.createLinkHandler) // Создание новой сокращённой ссылки
 
-	r.Route("/{short}", func(r chi.Router) {
-		r.Get("/", ls.getLinkHandler) // Восстановление ссылки
-	})
+	r.Get("/{short}", ls.getLinkHandler) // Восстановление ссылки
 
 	return r
 }
@@ -62,7 +60,7 @@ func (ls *LinkService) createLinkHandler(w http.ResponseWriter, req *http.Reques
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(ls.serviceAddress + responseBody.Short))
 	if err != nil {
-		log.Print("Error writing response body at createLinkHandler")
+		log.Printf("Error writing response body at createLinkHandler: %s\n", err)
 	}
 }
 

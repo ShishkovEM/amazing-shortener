@@ -1,4 +1,4 @@
-package linkstore
+package storage
 
 import (
 	"fmt"
@@ -39,7 +39,8 @@ func (ls *LinkStore) CreateLink(longURL string) string {
 	link := Link{
 		ID:       ls.nextID,
 		Original: longURL,
-		Short:    shorten()}
+		Short:    shorten(),
+	}
 
 	ls.links[link.Short] = link
 	ls.nextID++

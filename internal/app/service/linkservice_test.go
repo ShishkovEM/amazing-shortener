@@ -1,4 +1,4 @@
-package linkservice
+package service
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ShishkovEM/amazing-shortener/internal/app/linkstore"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -32,8 +32,8 @@ func testHTTPResponse(t *testing.T, r chi.Router, req *http.Request, f func(w *h
 }
 
 func TestLinkServer_CreateLinkHandlerPositive(t *testing.T) {
-	storage := linkstore.NewLinkStore()
-	ls := NewLinkService(storage, "http://"+linkServiceHost+":"+linkServicePort+"/")
+	linkStorage := storage.NewLinkStore()
+	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := ls.Routes()
 
 	req, err := http.NewRequest("POST", "/", bytes.NewBuffer([]byte(testedLongURL)))
@@ -51,8 +51,8 @@ func TestLinkServer_CreateLinkHandlerPositive(t *testing.T) {
 }
 
 func TestLinkServer_CreateLinkHandlerWithInvalidURL(t *testing.T) {
-	storage := linkstore.NewLinkStore()
-	ls := NewLinkService(storage, "http://"+linkServiceHost+":"+linkServicePort+"/")
+	linkStorage := storage.NewLinkStore()
+	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := ls.Routes()
 
 	req, err := http.NewRequest("POST", "/", bytes.NewBuffer([]byte(testedInvalidURL)))
@@ -70,8 +70,8 @@ func TestLinkServer_CreateLinkHandlerWithInvalidURL(t *testing.T) {
 }
 
 func TestLinkServer_GetLinkHandlerPositive(t *testing.T) {
-	storage := linkstore.NewLinkStore()
-	ls := NewLinkService(storage, "http://"+linkServiceHost+":"+linkServicePort+"/")
+	linkStorage := storage.NewLinkStore()
+	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := ls.Routes()
 
 	short := ls.store.CreateLink(testedLongURL)
@@ -91,8 +91,8 @@ func TestLinkServer_GetLinkHandlerPositive(t *testing.T) {
 }
 
 func TestLinkServer_GetLinkHandlerNegative(t *testing.T) {
-	storage := linkstore.NewLinkStore()
-	ls := NewLinkService(storage, "http://"+linkServiceHost+":"+linkServicePort+"/")
+	linkStorage := storage.NewLinkStore()
+	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := ls.Routes()
 
 	req, err := http.NewRequest("GET", "/wrongURL", nil)
