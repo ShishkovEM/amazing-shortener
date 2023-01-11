@@ -13,38 +13,31 @@ import (
 )
 
 type LinkService struct {
-	serverAddress string
-	serverPort    string
-	store         *linkstore.LinkStore
+	serviceAddress string
+	store          *linkstore.LinkStore
+}
+
+func NewLinkService(store *linkstore.LinkStore, serviceAddress string) *LinkService {
+	ls := &LinkService{
+		serviceAddress: serviceAddress,
+		store:          store,
+	}
+	return ls
 }
 
 func (ls *LinkService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.Post("/", ls.CreateLinkHandler) // Создание новой сокращённой ссылки
+	r.Post("/", ls.createLinkHandler) // Создание новой сокращённой ссылки
 
 	r.Route("/{short}", func(r chi.Router) {
-		r.Get("/", ls.GetLinkHandler) // Восстановление ссылки
+		r.Get("/", ls.getLinkHandler) // Восстановление ссылки
 	})
 
 	return r
 }
 
-func NewLinkService(store *linkstore.LinkStore) *LinkService {
-	ls := &LinkService{
-		store: store,
-	}
-	return ls
-}
-
-func (ls *LinkService) Run(serverAddress string, serverPort string) string {
-	ls.serverAddress = serverAddress
-	ls.serverPort = serverPort
-	target := strings.TrimPrefix(ls.serverAddress, "http://") + ":" + ls.serverPort
-	return target
-}
-
-func (ls *LinkService) CreateLinkHandler(w http.ResponseWriter, req *http.Request) {
+func (ls *LinkService) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	log.Printf("handling link create at %s\n", req.URL.Path)
 
 	LongURL, err := io.ReadAll(req.Body)
@@ -67,10 +60,13 @@ func (ls *LinkService) CreateLinkHandler(w http.ResponseWriter, req *http.Reques
 	}
 	w.Header().Set("Content-type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(ls.serverAddress + ":" + ls.serverPort + "/" + responseBody.Short))
+	_, err = w.Write([]byte(ls.serviceAddress + responseBody.Short))
+	if err != nil {
+		log.Print("Error writing response body at createLinkHandler")
+	}
 }
 
-func (ls *LinkService) GetLinkHandler(w http.ResponseWriter, req *http.Request) {
+func (ls *LinkService) getLinkHandler(w http.ResponseWriter, req *http.Request) {
 	log.Printf("handling get link at %s\n", req.URL.Path)
 
 	link, err := ls.store.GetLink(strings.Trim(req.URL.Path, "/"))

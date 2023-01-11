@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 
@@ -9,16 +10,20 @@ import (
 )
 
 const (
-	serverAddress = "http://localhost"
-	serverPort    = "8080"
+	linkServiceHost = "localhost"
+	linkServicePort = "8080"
 )
 
 func main() {
 	linkStorage := linkstore.NewLinkStore()
-	service := linkservice.NewLinkService(linkStorage)
-	log.Fatal(
-		http.ListenAndServe(
-			service.Run(serverAddress, serverPort), service.Routes(),
-		),
+	linkService := linkservice.NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort)
+	router := chi.NewRouter()
+	router.Mount("/", linkService.Routes())
+	err := http.ListenAndServe(
+		linkServiceHost+":"+linkServicePort, router,
 	)
+	if err != nil {
+		log.Print("Error starting linkService")
+		return
+	}
 }

@@ -14,6 +14,8 @@ import (
 )
 
 const (
+	linkServiceHost  = "localhost"
+	linkServicePort  = "8080"
 	testedLongURL    = "http://ya.ru/"
 	testedInvalidURL = "not URL at all"
 )
@@ -31,7 +33,7 @@ func testHTTPResponse(t *testing.T, r chi.Router, req *http.Request, f func(w *h
 
 func TestLinkServer_CreateLinkHandlerPositive(t *testing.T) {
 	storage := linkstore.NewLinkStore()
-	ls := NewLinkService(storage)
+	ls := NewLinkService(storage, "http://"+linkServiceHost+":"+linkServicePort)
 	r := ls.Routes()
 
 	req, err := http.NewRequest("POST", "/", bytes.NewBuffer([]byte(testedLongURL)))
@@ -42,7 +44,7 @@ func TestLinkServer_CreateLinkHandlerPositive(t *testing.T) {
 	testHTTPResponse(t, r, req, func(w *httptest.ResponseRecorder) bool {
 		statusOK := w.Code == http.StatusCreated
 		p, err := io.ReadAll(w.Body)
-		pageOK := err == nil && strings.Contains(string(p), ls.Run(ls.serverAddress, ls.serverPort))
+		pageOK := err == nil && strings.Contains(string(p), linkServiceHost+":"+linkServicePort)
 
 		return statusOK && pageOK
 	})
@@ -50,7 +52,7 @@ func TestLinkServer_CreateLinkHandlerPositive(t *testing.T) {
 
 func TestLinkServer_CreateLinkHandlerWithInvalidURL(t *testing.T) {
 	storage := linkstore.NewLinkStore()
-	ls := NewLinkService(storage)
+	ls := NewLinkService(storage, "http://"+linkServiceHost+":"+linkServicePort)
 	r := ls.Routes()
 
 	req, err := http.NewRequest("POST", "/", bytes.NewBuffer([]byte(testedInvalidURL)))
@@ -69,7 +71,7 @@ func TestLinkServer_CreateLinkHandlerWithInvalidURL(t *testing.T) {
 
 func TestLinkServer_GetLinkHandlerPositive(t *testing.T) {
 	storage := linkstore.NewLinkStore()
-	ls := NewLinkService(storage)
+	ls := NewLinkService(storage, "http://"+linkServiceHost+":"+linkServicePort)
 	r := ls.Routes()
 
 	short := ls.store.CreateLink(testedLongURL)
@@ -90,7 +92,7 @@ func TestLinkServer_GetLinkHandlerPositive(t *testing.T) {
 
 func TestLinkServer_GetLinkHandlerNegative(t *testing.T) {
 	storage := linkstore.NewLinkStore()
-	ls := NewLinkService(storage)
+	ls := NewLinkService(storage, "http://"+linkServiceHost+":"+linkServicePort)
 	r := ls.Routes()
 
 	req, err := http.NewRequest("GET", "/wrongURL", nil)
