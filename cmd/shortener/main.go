@@ -19,6 +19,7 @@ func main() {
 	linkService := service.NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	router := chi.NewRouter()
 	router.Mount("/", linkService.Routes())
+	router.Mount("/api", linkService.RestRoutes())
 	err := http.ListenAndServe(
 		linkServiceHost+":"+linkServicePort, router,
 	)
