@@ -13,14 +13,14 @@ import (
 )
 
 type LinkService struct {
-	serviceAddress string
-	store          *storage.LinkStore
+	baseURL string
+	store   *storage.LinkStore
 }
 
-func NewLinkService(store *storage.LinkStore, serviceAddress string) *LinkService {
+func NewLinkService(store *storage.LinkStore, baseURL string) *LinkService {
 	ls := &LinkService{
-		serviceAddress: serviceAddress,
-		store:          store,
+		baseURL: baseURL,
+		store:   store,
 	}
 	return ls
 }
@@ -58,7 +58,7 @@ func (ls *LinkService) createLinkHandler(w http.ResponseWriter, req *http.Reques
 	}
 	w.Header().Set("Content-type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(ls.serviceAddress + responseBody.Short))
+	_, err = w.Write([]byte(ls.baseURL + responseBody.Short))
 	if err != nil {
 		log.Printf("Error writing response body at createLinkHandler: %s\n", err)
 	}

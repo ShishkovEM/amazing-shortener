@@ -72,5 +72,5 @@ func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Re
 	}
 
 	short := ls.store.CreateLink(rl.URL)
-	renderJSON(w, ResponseShortLink{Result: ls.serviceAddress + short})
+	renderJSON(w, ResponseShortLink{Result: ls.baseURL + short})
 }
