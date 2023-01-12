@@ -52,7 +52,7 @@ func shorten() string {
 	hd := hashids.NewData()
 	h, _ := hashids.NewWithData(hd)
 	now := time.Now()
-	short, _ := h.Encode([]int{int(now.Unix())})
+	short, _ := h.Encode([]int{int(now.UnixMilli())})
 	return short
 }
 
