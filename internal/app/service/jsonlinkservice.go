@@ -22,6 +22,7 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(js)
 	if err != nil {
 		log.Printf("Error rendering JSON: %v\n", err)

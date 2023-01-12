@@ -25,7 +25,7 @@ func TestLinkService_CreateLinkJSONHandlerPositive(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	testHTTPResponse(t, r, req, func(w *httptest.ResponseRecorder) bool {
-		statusOK := w.Code == http.StatusOK
+		statusOK := w.Code == http.StatusCreated
 		mediaTypeOK := w.Header().Get("Content-Type") == "application/json"
 		p, err := io.ReadAll(w.Body)
 		pageOK := err == nil && strings.Contains(string(p), linkServiceHost+":"+linkServicePort)
