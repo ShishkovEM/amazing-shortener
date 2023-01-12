@@ -43,6 +43,7 @@ func (ls *LinkService) createLinkHandler(w http.ResponseWriter, req *http.Reques
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	log.Printf("recieved long url: %s\n", LongURL)
 
 	if !isValidURL(string(LongURL)) {
 		http.Error(w, "Invalid URL creation request handled. Input URL: "+string(LongURL), http.StatusBadRequest)
@@ -56,6 +57,8 @@ func (ls *LinkService) createLinkHandler(w http.ResponseWriter, req *http.Reques
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+	log.Printf("created short id: %s\n", responseBody.Short)
+
 	w.Header().Set("Content-type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(ls.baseURL + responseBody.Short))
@@ -72,6 +75,7 @@ func (ls *LinkService) getLinkHandler(w http.ResponseWriter, req *http.Request) 
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+	log.Printf("expanded original link: %s\n", link.Original)
 
 	w.Header().Set("Content-type", "text/plain; charset=utf-8")
 	w.Header().Set("Location", link.Original)

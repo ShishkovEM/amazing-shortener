@@ -64,6 +64,7 @@ func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Re
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	log.Printf("recieved long url: %s\n", rl.URL)
 
 	if !isValidURL(rl.URL) {
 		log.Printf("Handled invlid URL: %s\n", rl.URL)
@@ -72,5 +73,6 @@ func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Re
 	}
 
 	short := ls.store.CreateLink(rl.URL)
+	log.Printf("created short id: %s\n", short)
 	renderJSON(w, ResponseShortLink{Result: ls.baseURL + short})
 }
