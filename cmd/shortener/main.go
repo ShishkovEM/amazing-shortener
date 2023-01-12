@@ -13,7 +13,7 @@ import (
 
 type LinkServiceConfig struct {
 	Address string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	BaseURL string `env:"BASE_URL" envDefault:"localhost:8080"`
+	BaseURL string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 }
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 	}
 
 	linkStorage := storage.NewLinkStore()
-	linkService := service.NewLinkService(linkStorage, "http://"+cfg.BaseURL+"/")
+	linkService := service.NewLinkService(linkStorage, cfg.BaseURL+"/")
 	router := chi.NewRouter()
 	router.Mount("/", linkService.Routes())
 	router.Mount("/api", linkService.RestRoutes())
