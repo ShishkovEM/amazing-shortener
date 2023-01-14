@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,9 +38,13 @@ func NewLinkStore(fileName string) *LinkStore {
 
 	if ls.fileName != "" {
 		file, err := os.Open(fileName)
-		defer file.Close()
 
-		if err != nil {
+		if strings.Contains(err.Error(), "no such file or directory") {
+			file, err = os.Create(fileName)
+			if err != nil {
+				log.Fatalf("Error when creating file: %s", err)
+			}
+		} else if err != nil {
 			log.Fatalf("Error when opening file: %s", err)
 		}
 		fileScanner := bufio.NewScanner(file)
@@ -55,6 +60,10 @@ func NewLinkStore(fileName string) *LinkStore {
 		}
 		if err := fileScanner.Err(); err != nil {
 			log.Fatalf("Error while reading file: %s", err)
+		}
+		err = file.Close()
+		if err != nil {
+			log.Fatalf("Error when closing file: %s", err)
 		}
 	}
 	return ls
@@ -90,10 +99,13 @@ func (ls *LinkStore) CreateLink(longURL string) string {
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer producer.Close()
 		err = producer.WriteLink(&link)
 		if err != nil {
 			log.Fatal(err)
+		}
+		err = producer.Close()
+		if err != nil {
+			log.Fatalf("Error when closing producer: %s", err)
 		}
 	}
 	return link.Short
@@ -104,7 +116,7 @@ func shorten() string {
 	hd := hashids.NewData()
 	h, _ := hashids.NewWithData(hd)
 	now := time.Now()
-	short, _ := h.Encode([]int{int(now.UnixMilli())})
+	short, _ := h.Encode([]int{int(now.UnixMicro())})
 	return short
 }
 
