@@ -32,7 +32,7 @@ func testHTTPResponse(t *testing.T, r chi.Router, req *http.Request, f func(w *h
 }
 
 func TestLinkServer_CreateLinkHandlerPositive(t *testing.T) {
-	linkStorage := storage.NewLinkStore()
+	linkStorage := storage.NewLinkStore("")
 	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := ls.Routes()
 
@@ -51,7 +51,7 @@ func TestLinkServer_CreateLinkHandlerPositive(t *testing.T) {
 }
 
 func TestLinkServer_CreateLinkHandlerWithInvalidURL(t *testing.T) {
-	linkStorage := storage.NewLinkStore()
+	linkStorage := storage.NewLinkStore("")
 	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := ls.Routes()
 
@@ -70,7 +70,7 @@ func TestLinkServer_CreateLinkHandlerWithInvalidURL(t *testing.T) {
 }
 
 func TestLinkServer_GetLinkHandlerPositive(t *testing.T) {
-	linkStorage := storage.NewLinkStore()
+	linkStorage := storage.NewLinkStore("")
 	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := ls.Routes()
 
@@ -91,7 +91,7 @@ func TestLinkServer_GetLinkHandlerPositive(t *testing.T) {
 }
 
 func TestLinkServer_GetLinkHandlerNegative(t *testing.T) {
-	linkStorage := storage.NewLinkStore()
+	linkStorage := storage.NewLinkStore("")
 	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := ls.Routes()
 

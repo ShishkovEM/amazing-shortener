@@ -12,7 +12,7 @@ import (
 )
 
 func TestLinkService_CreateLinkJSONHandlerPositive(t *testing.T) {
-	linkStorage := storage.NewLinkStore()
+	linkStorage := storage.NewLinkStore("")
 	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := chi.NewRouter()
 	r.Mount("/api", ls.RestRoutes())
@@ -35,7 +35,7 @@ func TestLinkService_CreateLinkJSONHandlerPositive(t *testing.T) {
 }
 
 func TestLinkService_CreateLinkJSONHandlerInvalidURL(t *testing.T) {
-	linkStorage := storage.NewLinkStore()
+	linkStorage := storage.NewLinkStore("")
 	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := chi.NewRouter()
 	r.Mount("/api", ls.RestRoutes())
