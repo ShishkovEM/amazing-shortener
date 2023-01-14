@@ -1,7 +1,11 @@
 package storage
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -10,25 +14,59 @@ import (
 
 // Link Структура записи информации о гиперссылках
 type Link struct {
-	ID       int    // Идентификатор гиперссылки
-	Original string // Исходная (длинная) ссылка
-	Short    string // Короткая ссылка
+	ID       int    `json:"id"`       // Идентификатор гиперссылки
+	Original string `json:"original"` // Исходная (длинная) ссылка
+	Short    string `json:"short"`    // Короткая ссылка
 }
 
 // LinkStore Структура для хранения записей типа Link в оперативной памяти
 type LinkStore struct {
 	sync.Mutex
 
-	links  map[string]Link
-	nextID int
+	fileName string
+	links    map[string]Link
+	nextID   int
 }
 
 // NewLinkStore Создаёт новый LinkStore
-func NewLinkStore() *LinkStore {
+func NewLinkStore(fileName string) *LinkStore {
 	ls := &LinkStore{}
 	ls.links = make(map[string]Link)
 	ls.nextID = 0
+	ls.fileName = fileName
+
+	if ls.fileName != "" {
+		file, err := os.Open(fileName)
+		defer file.Close()
+
+		if err != nil {
+			log.Fatalf("Error when opening file: %s", err)
+		}
+		fileScanner := bufio.NewScanner(file)
+		lineCounter := 1
+		for fileScanner.Scan() {
+			link := Link{}
+			err := json.Unmarshal(fileScanner.Bytes(), &link)
+			if err != nil {
+				log.Fatalf("Error when unmarshalling file %s at line %d", err, lineCounter)
+			}
+			ls.addLinkToMemStorage(link)
+			lineCounter++
+		}
+		if err := fileScanner.Err(); err != nil {
+			log.Fatalf("Error while reading file: %s", err)
+		}
+	}
 	return ls
+}
+
+func (ls *LinkStore) addLinkToMemStorage(link Link) {
+	ls.Lock()
+	defer ls.Unlock()
+
+	link.ID = ls.nextID
+	ls.links[link.Short] = link
+	ls.nextID++
 }
 
 // CreateLink создаёт новую запись в LinkStore
@@ -42,8 +80,22 @@ func (ls *LinkStore) CreateLink(longURL string) string {
 		Short:    shorten(),
 	}
 
-	ls.links[link.Short] = link
-	ls.nextID++
+	if ls.fileName == "" {
+		ls.links[link.Short] = link
+		ls.nextID++
+	} else {
+		ls.links[link.Short] = link
+		ls.nextID++
+		producer, err := newProducer(ls.fileName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer producer.Close()
+		err = producer.WriteLink(&link)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	return link.Short
 }
 
