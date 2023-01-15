@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/speps/go-hashids"
@@ -37,16 +37,11 @@ func NewLinkStore(fileName string) *LinkStore {
 	ls.fileName = fileName
 
 	if ls.fileName != "" {
-		file, err := os.Open(fileName)
-
-		if strings.Contains(err.Error(), "no such file or directory") {
-			file, err = os.Create(fileName)
-			if err != nil {
-				log.Fatalf("Error when creating file: %s", err)
-			}
-		} else if err != nil {
-			log.Fatalf("Error when opening file: %s", err)
+		file, err := os.OpenFile(fileName, syscall.O_RDONLY|syscall.O_CREAT, 0777)
+		if err != nil {
+			log.Fatalf("Error when opening/creating file: %s", err)
 		}
+
 		fileScanner := bufio.NewScanner(file)
 		lineCounter := 1
 		for fileScanner.Scan() {
