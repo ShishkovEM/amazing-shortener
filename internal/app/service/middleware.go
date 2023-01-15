@@ -11,6 +11,8 @@ import (
 var allowedContentTypes = [...]string{
 	"application/javascript",
 	"application/json",
+	"application/x-gzip",
+	"application/gzip",
 	"text/css",
 	"text/html",
 	"text/plain",
@@ -87,6 +89,10 @@ func GzipHandle(next http.Handler) http.Handler {
 				}
 			}(gzr)
 			req, err := http.NewRequest(r.Method, r.RequestURI, reader)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gzw}, req)
 		} else {
 			next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gzw}, r)
