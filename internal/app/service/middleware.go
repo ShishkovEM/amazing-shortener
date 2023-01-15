@@ -53,7 +53,7 @@ func GzipHandle(next http.Handler) http.Handler {
 		}
 
 		// создаём gzip.Writer поверх текущего w
-		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
+		gzw, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
 			_, err := io.WriteString(w, err.Error())
 			if err != nil {
@@ -62,15 +62,37 @@ func GzipHandle(next http.Handler) http.Handler {
 			}
 			return
 		}
-		defer func(gz *gzip.Writer) {
-			err := gz.Close()
+		defer func(gzw *gzip.Writer) {
+			err := gzw.Close()
 			if err != nil {
 				log.Fatalf("Error when closing gzipWriter: %s", err)
 			}
-		}(gz)
+		}(gzw)
 
 		w.Header().Set("Content-Encoding", "gzip")
+
+		var reader io.Reader
+
+		if strings.Contains(r.Header.Get(`Content-Encoding`), "gzip") {
+			gzr, err := gzip.NewReader(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			reader = gzr
+			defer func(gzr *gzip.Reader) {
+				err := gzr.Close()
+				if err != nil {
+					log.Fatalf("Error when closing gzipReader: %s", err)
+				}
+			}(gzr)
+		} else {
+			reader = r.Body
+		}
+
+		req, err := http.NewRequest(r.Method, r.RequestURI, reader)
+
 		// передаём обработчику страницы переменную типа gzipWriter для вывода данных
-		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
+		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gzw}, req)
 	})
 }
