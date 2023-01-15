@@ -56,7 +56,7 @@ func main() {
 	router.Mount("/api", linkService.RestRoutes())
 
 	// Запускаем http-сервер
-	err = http.ListenAndServe(cfg.Address, router)
+	err = http.ListenAndServe(cfg.Address, service.GzipHandle(router))
 	if err != nil {
 		log.Printf("Error starting linkService: %s\n", err)
 		return
