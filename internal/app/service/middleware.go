@@ -86,13 +86,10 @@ func GzipHandle(next http.Handler) http.Handler {
 					log.Fatalf("Error when closing gzipReader: %s", err)
 				}
 			}(gzr)
+			req, err := http.NewRequest(r.Method, r.RequestURI, reader)
+			next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gzw}, req)
 		} else {
-			reader = r.Body
+			next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gzw}, r)
 		}
-
-		req, err := http.NewRequest(r.Method, r.RequestURI, reader)
-
-		// передаём обработчику страницы переменную типа gzipWriter для вывода данных
-		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gzw}, req)
 	})
 }
