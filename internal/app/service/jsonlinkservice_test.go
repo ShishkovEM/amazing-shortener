@@ -2,13 +2,15 @@ package service
 
 import (
 	"bytes"
-	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
-	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func TestLinkService_CreateLinkJSONHandlerPositive(t *testing.T) {
