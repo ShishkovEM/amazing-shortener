@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ShishkovEM/amazing-shortener/internal/app/config"
+	mw "github.com/ShishkovEM/amazing-shortener/internal/app/middleware"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/service"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
 
@@ -30,7 +31,7 @@ func main() {
 	router.Mount("/api", linkService.RestRoutes())
 
 	// Запускаем http-сервер
-	err := http.ListenAndServe(lsc.Address, service.GzipHandle(router))
+	err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
 	if err != nil {
 		log.Printf("Error starting linkService: %s\n", err)
 		return
