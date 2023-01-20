@@ -106,10 +106,6 @@ func (lr *LinkRepository) Refresh(fileName string) {
 				return
 			}
 
-			if err != nil {
-				log.Fatalf("Error when truncating file before refresh: %s", err)
-				return
-			}
 			for _, link := range lr.InMemory.Links {
 				err := newProducer.WriteLink(&link)
 				if err != nil {
@@ -125,7 +121,7 @@ func (lr *LinkRepository) Refresh(fileName string) {
 			lr.repository.producer.Unlock()
 		}
 
-		time.Sleep(10 * time.Second)
+		time.Sleep(1 * time.Millisecond)
 	}
 }
 
