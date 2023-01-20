@@ -1,13 +1,8 @@
 package storage
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
-	"log"
-	"os"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/speps/go-hashids"
@@ -24,52 +19,25 @@ type Link struct {
 type LinkStore struct {
 	sync.Mutex
 
-	fileName string
-	links    map[string]Link
-	nextID   int
+	Links  map[string]Link
+	nextID int
 }
 
 // NewLinkStore Создаёт новый LinkStore
-func NewLinkStore(fileName string) *LinkStore {
+func NewLinkStore() *LinkStore {
 	ls := &LinkStore{}
-	ls.links = make(map[string]Link)
+	ls.Links = make(map[string]Link)
 	ls.nextID = 0
-	ls.fileName = fileName
 
-	if ls.fileName != "" {
-		file, err := os.OpenFile(fileName, syscall.O_RDONLY|syscall.O_CREAT, 0777)
-		if err != nil {
-			log.Fatalf("Error when opening/creating file: %s", err)
-		}
-
-		fileScanner := bufio.NewScanner(file)
-		lineCounter := 1
-		for fileScanner.Scan() {
-			link := Link{}
-			err := json.Unmarshal(fileScanner.Bytes(), &link)
-			if err != nil {
-				log.Fatalf("Error when unmarshalling file %s at line %d", err, lineCounter)
-			}
-			ls.addLinkToMemStorage(link)
-			lineCounter++
-		}
-		if err := fileScanner.Err(); err != nil {
-			log.Fatalf("Error while reading file: %s", err)
-		}
-		err = file.Close()
-		if err != nil {
-			log.Fatalf("Error when closing file: %s", err)
-		}
-	}
 	return ls
 }
 
-func (ls *LinkStore) addLinkToMemStorage(link Link) {
+func (ls *LinkStore) AddLinkToMemStorage(link Link) {
 	ls.Lock()
 	defer ls.Unlock()
 
 	link.ID = ls.nextID
-	ls.links[link.Short] = link
+	ls.Links[link.Short] = link
 	ls.nextID++
 }
 
@@ -83,26 +51,8 @@ func (ls *LinkStore) CreateLink(longURL string) string {
 		Original: longURL,
 		Short:    shorten(),
 	}
-
-	if ls.fileName == "" {
-		ls.links[link.Short] = link
-		ls.nextID++
-	} else {
-		ls.links[link.Short] = link
-		ls.nextID++
-		producer, err := newProducer(ls.fileName)
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = producer.WriteLink(&link)
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = producer.Close()
-		if err != nil {
-			log.Fatalf("Error when closing producer: %s", err)
-		}
-	}
+	ls.Links[link.Short] = link
+	ls.nextID++
 	return link.Short
 }
 
@@ -120,11 +70,15 @@ func (ls *LinkStore) GetLink(short string) (Link, error) {
 	ls.Lock()
 	defer ls.Unlock()
 
-	l, ok := ls.links[short]
+	l, ok := ls.Links[short]
 
 	if ok {
 		return l, nil
 	} else {
 		return Link{}, fmt.Errorf("link with id=%s not found", short)
 	}
+}
+
+func (ls *LinkStore) GetSize() int {
+	return len(ls.Links)
 }
