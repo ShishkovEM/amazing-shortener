@@ -96,16 +96,15 @@ func (lr *LinkRepository) Refresh(fileName string) {
 	defer lr.Unlock()
 
 	for {
+		time.Sleep(1 * time.Millisecond)
 		itemsInMemStorage := lr.InMemory.GetSize()
 		if lr.repository.producer.file != nil && itemsInMemStorage > lr.size {
-			lr.repository.producer.Lock()
 
 			newProducer, err := RefreshProducer(fileName)
 			if err != nil {
 				log.Fatalf("Error when renewing producer: %s", err)
 				return
 			}
-
 			for _, link := range lr.InMemory.Links {
 				err := newProducer.WriteLink(&link)
 				if err != nil {
@@ -117,11 +116,7 @@ func (lr *LinkRepository) Refresh(fileName string) {
 				log.Fatalf("Error when closing producer: %s", err)
 				return
 			}
-
-			lr.repository.producer.Unlock()
 		}
-
-		time.Sleep(1 * time.Millisecond)
 	}
 }
 
@@ -137,7 +132,7 @@ func NewProducer(fileName string) (*Producer, error) {
 }
 
 func RefreshProducer(fileName string) (*Producer, error) {
-	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_SYNC, 0777)
+	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
 		return nil, err
 	}
