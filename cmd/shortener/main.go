@@ -36,12 +36,12 @@ func startLinkService(linkStorage *storage.LinkStore) {
 		linkService := service.NewLinkService(linkStorage, lsc.BaseURL+"/")
 
 		// Запускаем маршрутизацию
-		router := chi.NewRouter().With(mw.UnzipRequest, mw.ZipResponse)
+		router := chi.NewRouter()
 		router.Mount("/", linkService.Routes())
 		router.Mount("/api", linkService.RestRoutes())
 
 		// Запускаем http-сервер
-		err := http.ListenAndServe(lsc.Address, router)
+		err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
 		if err != nil {
 			log.Printf("Error starting linkService: %s\n", err)
 			return
@@ -60,12 +60,12 @@ func startLinkService(linkStorage *storage.LinkStore) {
 		linkService := service.NewLinkService(linkFileRepo.InMemory, lsc.BaseURL+"/")
 
 		// Запускаем маршрутизацию
-		router := chi.NewRouter().With(mw.UnzipRequest, mw.ZipResponse)
+		router := chi.NewRouter()
 		router.Mount("/", linkService.Routes())
 		router.Mount("/api", linkService.RestRoutes())
 
 		// Запускаем http-сервер
-		err = http.ListenAndServe(lsc.Address, router)
+		err = http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
 		if err != nil {
 			log.Printf("Error starting linkService: %s\n", err)
 			return
