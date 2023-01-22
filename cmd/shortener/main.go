@@ -25,54 +25,50 @@ func main() {
 	// Создаём in-memory хранилище ссылок
 	linkStorage := storage.NewLinkStore()
 
-	// Если файловое хранилище не задано, запустим сервис только с in-memory хранилишем
+	// Запускаем сервис
+	startLinkService(linkStorage)
+}
+
+func startLinkService(linkStorage *storage.LinkStore) {
+
 	if lsc.FileStoragePath == "" {
-		startLinkServiceWithInMemory(linkStorage)
+		// Создаём сервис для обработки create- и read- операций
+		linkService := service.NewLinkService(linkStorage, lsc.BaseURL+"/")
+
+		// Запускаем маршрутизацию
+		router := chi.NewRouter().With(mw.UnzipRequest, mw.ZipResponse)
+		router.Mount("/", linkService.Routes())
+		router.Mount("/api", linkService.RestRoutes())
+
+		// Запускаем http-сервер
+		err := http.ListenAndServe(lsc.Address, router)
+		if err != nil {
+			log.Printf("Error starting linkService: %s\n", err)
+			return
+		}
 	} else {
-		// Если в конфигурации передано имя файла, инициализруем файловый репозиторий
-		startLinkServiceWithFileStorage(linkStorage)
-	}
-}
+		linkFileRepo, err := repository.NewLinkRepository(lsc.FileStoragePath, linkStorage)
+		if err != nil {
+			log.Printf("Error initializing file repository for linkStorage: %s\n", err)
+			return
+		}
 
-func startLinkServiceWithInMemory(linkStorage *storage.LinkStore) {
-	// Создаём сервис для обработки create- и read- операций
-	linkService := service.NewLinkService(linkStorage, lsc.BaseURL+"/")
+		// Запускаем синхронизацию in-memory хранилища с файловым
+		go linkFileRepo.Refresh(lsc.FileStoragePath)
 
-	// Запускаем маршрутизацию
-	router := chi.NewRouter()
-	router.Mount("/", linkService.Routes())
-	router.Mount("/api", linkService.RestRoutes())
+		// Создаём сервис для обработки create- и read- операций
+		linkService := service.NewLinkService(linkFileRepo.InMemory, lsc.BaseURL+"/")
 
-	// Запускаем http-сервер
-	err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
-	if err != nil {
-		log.Printf("Error starting linkService: %s\n", err)
-		return
-	}
-}
+		// Запускаем маршрутизацию
+		router := chi.NewRouter().With(mw.UnzipRequest, mw.ZipResponse)
+		router.Mount("/", linkService.Routes())
+		router.Mount("/api", linkService.RestRoutes())
 
-func startLinkServiceWithFileStorage(linkStorage *storage.LinkStore) {
-	linkFileRepo, err := repository.NewLinkRepository(lsc.FileStoragePath, linkStorage)
-	if err != nil {
-		log.Printf("Error initializing file repository for linkStorage: %s\n", err)
-		return
-	}
-
-	// Запускаем синхронизацию in-memory хранилища с файловым
-	go linkFileRepo.Refresh(lsc.FileStoragePath)
-
-	// Создаём сервис для обработки create- и read- операций
-	linkService := service.NewLinkService(linkFileRepo.InMemory, lsc.BaseURL+"/")
-
-	// Запускаем маршрутизацию
-	router := chi.NewRouter()
-	router.Mount("/", linkService.Routes())
-	router.Mount("/api", linkService.RestRoutes())
-
-	// Запускаем http-сервер
-	err = http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
-	if err != nil {
-		log.Printf("Error starting linkService: %s\n", err)
-		return
+		// Запускаем http-сервер
+		err = http.ListenAndServe(lsc.Address, router)
+		if err != nil {
+			log.Printf("Error starting linkService: %s\n", err)
+			return
+		}
 	}
 }
