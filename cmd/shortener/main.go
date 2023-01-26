@@ -40,7 +40,9 @@ func main() {
 	linkService := service.NewLinkService(linkStorage, lsc.BaseURL+"/")
 
 	// Запускаем маршрутизацию
-	router := chi.NewRouter().With(mw.UnzipRequest, mw.ZipResponse)
+	router := chi.NewRouter()
+	router.Use(mw.UnzipRequest)
+	router.Use(mw.ZipResponse)
 	router.Mount("/", linkService.Routes())
 	router.Mount("/api", linkService.RestRoutes())
 
