@@ -10,7 +10,7 @@ import (
 type LinkServiceConfig struct {
 	Address         string `env:"SERVER_ADDRESS"`
 	BaseURL         string `env:"BASE_URL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" default:"files/linkStorage"`
 }
 
 func (lsc *LinkServiceConfig) Parse() {
