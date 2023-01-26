@@ -38,27 +38,30 @@ type Consumer struct {
 }
 
 func NewLinkFileRepository(fileName string) (*LinkFileRepository, error) {
-	producer, err := NewProducer(fileName)
-	if err != nil {
-		return nil, err
-	}
+	if fileName != "" {
+		producer, err := NewProducer(fileName)
+		if err != nil {
+			return nil, err
+		}
 
-	consumer, err := NewConsumer(fileName)
-	if err != nil {
-		return nil, err
-	}
+		consumer, err := NewConsumer(fileName)
+		if err != nil {
+			return nil, err
+		}
 
-	lfr := FileRepo{
-		producer: producer,
-		consumer: consumer,
-	}
+		lfr := FileRepo{
+			producer: producer,
+			consumer: consumer,
+		}
 
-	linkRepository := LinkFileRepository{
-		fileName:   fileName,
-		repository: &lfr,
-	}
+		linkRepository := LinkFileRepository{
+			fileName:   fileName,
+			repository: &lfr,
+		}
 
-	return &linkRepository, nil
+		return &linkRepository, nil
+	}
+	return nil, nil
 }
 
 func (lfr *LinkFileRepository) InitLinkStoreFromRepository(store *storage.LinkStore) {

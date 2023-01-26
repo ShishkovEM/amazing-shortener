@@ -34,9 +34,10 @@ func NewLinkStore(repo LinkRepository) *LinkStore {
 	ls := &LinkStore{}
 	ls.Links = make(map[string]Link)
 	ls.nextID = 0
-	ls.Repository = repo
-	InitLinkStoreFromRepository(ls.Repository, ls)
-
+	if repo != nil {
+		ls.Repository = repo
+		InitLinkStoreFromRepository(ls.Repository, ls)
+	}
 	return ls
 }
 

@@ -22,15 +22,19 @@ func main() {
 	// Считываем конфигурацию для LinkService
 	lsc.Parse()
 
-	// Создаём файловый репозиторий
-	linkFileRepository, err := repository.NewLinkFileRepository(lsc.FileStoragePath)
-	if err != nil {
-		log.Printf("Error creating linkRepository: %s\n", err)
-		return
-	}
+	var linkStorage *storage.LinkStore
 
-	// Создаём in-memory хранилище ссылок
-	linkStorage := storage.NewLinkStore(linkFileRepository)
+	// Создаём файловый репозиторий и хранилище ссылок
+	if lsc.FileStoragePath != "" {
+		linkFileRepository, err := repository.NewLinkFileRepository(lsc.FileStoragePath)
+		if err != nil {
+			log.Printf("Error creating linkRepository: %s\n", err)
+			return
+		}
+		linkStorage = storage.NewLinkStore(linkFileRepository)
+	} else {
+		linkStorage = storage.NewLinkStoreInMemory()
+	}
 
 	// Создаём сервис для обработки create- и read- операций
 	linkService := service.NewLinkService(linkStorage, lsc.BaseURL+"/")
@@ -41,7 +45,7 @@ func main() {
 	router.Mount("/api", linkService.RestRoutes())
 
 	// Запускаем http-сервер
-	err = http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
+	err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
 	if err != nil {
 		log.Printf("Error starting linkService: %s\n", err)
 		return

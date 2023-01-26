@@ -10,14 +10,14 @@ import (
 type LinkServiceConfig struct {
 	Address         string `env:"SERVER_ADDRESS"`
 	BaseURL         string `env:"BASE_URL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH" default:"files/linkStorage"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
 func (lsc *LinkServiceConfig) Parse() {
 	// Считываем конфигурацию с помощью флагов
 	flag.StringVar(&lsc.Address, "a", "localhost:8080", "server address")
 	flag.StringVar(&lsc.BaseURL, "b", "http://localhost:8080", "base url")
-	flag.StringVar(&lsc.FileStoragePath, "f", "files/linkStorage", "file storage path")
+	flag.StringVar(&lsc.FileStoragePath, "f", "", "file storage path")
 	flag.Parse()
 
 	// Считываем конфигурацию с помощью переменных окружения
