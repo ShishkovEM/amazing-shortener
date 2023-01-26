@@ -22,53 +22,28 @@ func main() {
 	// Считываем конфигурацию для LinkService
 	lsc.Parse()
 
+	// Создаём файловый репозиторий
+	linkFileRepository, err := repository.NewLinkFileRepository(lsc.FileStoragePath)
+	if err != nil {
+		log.Printf("Error creating linkRepository: %s\n", err)
+		return
+	}
+
 	// Создаём in-memory хранилище ссылок
-	linkStorage := storage.NewLinkStore()
+	linkStorage := storage.NewLinkStore(linkFileRepository)
 
-	// Запускаем сервис
-	startLinkService(linkStorage)
-}
+	// Создаём сервис для обработки create- и read- операций
+	linkService := service.NewLinkService(linkStorage, lsc.BaseURL+"/")
 
-func startLinkService(linkStorage *storage.LinkStore) {
+	// Запускаем маршрутизацию
+	router := chi.NewRouter()
+	router.Mount("/", linkService.Routes())
+	router.Mount("/api", linkService.RestRoutes())
 
-	if lsc.FileStoragePath == "" {
-		// Создаём сервис для обработки create- и read- операций
-		linkService := service.NewLinkService(linkStorage, lsc.BaseURL+"/")
-
-		// Запускаем маршрутизацию
-		router := chi.NewRouter()
-		router.Mount("/", linkService.Routes())
-		router.Mount("/api", linkService.RestRoutes())
-
-		// Запускаем http-сервер
-		err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
-		if err != nil {
-			log.Printf("Error starting linkService: %s\n", err)
-			return
-		}
-	} else {
-		linkFileRepo, err := repository.NewLinkRepository(lsc.FileStoragePath, linkStorage)
-		if err != nil {
-			log.Printf("Error initializing file repository for linkStorage: %s\n", err)
-			return
-		}
-
-		// Запускаем синхронизацию in-memory хранилища с файловым
-		go linkFileRepo.Refresh(lsc.FileStoragePath)
-
-		// Создаём сервис для обработки create- и read- операций
-		linkService := service.NewLinkService(linkFileRepo.InMemory, lsc.BaseURL+"/")
-
-		// Запускаем маршрутизацию
-		router := chi.NewRouter()
-		router.Mount("/", linkService.Routes())
-		router.Mount("/api", linkService.RestRoutes())
-
-		// Запускаем http-сервер
-		err = http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
-		if err != nil {
-			log.Printf("Error starting linkService: %s\n", err)
-			return
-		}
+	// Запускаем http-сервер
+	err = http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
+	if err != nil {
+		log.Printf("Error starting linkService: %s\n", err)
+		return
 	}
 }

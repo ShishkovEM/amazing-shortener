@@ -72,7 +72,11 @@ func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	short := ls.store.CreateLink(rl.URL)
+	short, err := ls.store.CreateLink(rl.URL)
+	if err != nil {
+		log.Printf("Error creating link: %s\n", err)
+		return
+	}
 	log.Printf("created short id: %s\n", short)
 	renderJSON(w, ResponseShortLink{Result: ls.baseURL + short})
 }

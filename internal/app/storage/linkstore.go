@@ -8,6 +8,11 @@ import (
 	"github.com/speps/go-hashids"
 )
 
+type LinkRepository interface {
+	InitLinkStoreFromRepository(store *LinkStore)
+	WriteLinkToRepository(link *Link) error
+}
+
 // Link Структура записи информации о гиперссылках
 type Link struct {
 	ID       int    `json:"id"`       // Идентификатор гиперссылки
@@ -19,12 +24,23 @@ type Link struct {
 type LinkStore struct {
 	sync.Mutex
 
-	Links  map[string]Link
-	nextID int
+	Links      map[string]Link
+	nextID     int
+	Repository LinkRepository
 }
 
 // NewLinkStore Создаёт новый LinkStore
-func NewLinkStore() *LinkStore {
+func NewLinkStore(repo LinkRepository) *LinkStore {
+	ls := &LinkStore{}
+	ls.Links = make(map[string]Link)
+	ls.nextID = 0
+	ls.Repository = repo
+	InitLinkStoreFromRepository(ls.Repository, ls)
+
+	return ls
+}
+
+func NewLinkStoreInMemory() *LinkStore {
 	ls := &LinkStore{}
 	ls.Links = make(map[string]Link)
 	ls.nextID = 0
@@ -42,7 +58,7 @@ func (ls *LinkStore) AddLinkToMemStorage(link Link) {
 }
 
 // CreateLink создаёт новую запись в LinkStore
-func (ls *LinkStore) CreateLink(longURL string) string {
+func (ls *LinkStore) CreateLink(longURL string) (string, error) {
 	ls.Lock()
 	defer ls.Unlock()
 
@@ -53,7 +69,14 @@ func (ls *LinkStore) CreateLink(longURL string) string {
 	}
 	ls.Links[link.Short] = link
 	ls.nextID++
-	return link.Short
+
+	if ls.Repository != nil {
+		err := WriteLinkToRepository(ls.Repository, &link)
+		if err != nil {
+			return "", err
+		}
+	}
+	return link.Short, nil
 }
 
 // shorten() Создаёт короткий хэш
@@ -81,4 +104,16 @@ func (ls *LinkStore) GetLink(short string) (Link, error) {
 
 func (ls *LinkStore) GetSize() int {
 	return len(ls.Links)
+}
+
+func WriteLinkToRepository(repo LinkRepository, link *Link) error {
+	err := repo.WriteLinkToRepository(link)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func InitLinkStoreFromRepository(repo LinkRepository, store *LinkStore) {
+	repo.InitLinkStoreFromRepository(store)
 }

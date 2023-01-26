@@ -7,20 +7,18 @@ import (
 	"os"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
 )
 
-type LinkRepository struct {
+type LinkFileRepository struct {
 	sync.Mutex
 
-	InMemory   *storage.LinkStore
-	repository *LinkFileRepo
-	size       int
+	fileName   string
+	repository *FileRepo
 }
 
-type LinkFileRepo struct {
+type FileRepo struct {
 	producer *Producer
 	consumer *Consumer
 }
@@ -39,7 +37,7 @@ type Consumer struct {
 	scanner *bufio.Scanner
 }
 
-func NewLinkRepository(fileName string, linkStore *storage.LinkStore) (*LinkRepository, error) {
+func NewLinkFileRepository(fileName string) (*LinkFileRepository, error) {
 	producer, err := NewProducer(fileName)
 	if err != nil {
 		return nil, err
@@ -50,19 +48,22 @@ func NewLinkRepository(fileName string, linkStore *storage.LinkStore) (*LinkRepo
 		return nil, err
 	}
 
-	lfr := LinkFileRepo{
+	lfr := FileRepo{
 		producer: producer,
 		consumer: consumer,
 	}
 
-	linkRepository := LinkRepository{
-		InMemory:   linkStore,
+	linkRepository := LinkFileRepository{
+		fileName:   fileName,
 		repository: &lfr,
-		size:       0,
 	}
 
-	if fileName != "" {
-		file, err := os.OpenFile(fileName, syscall.O_RDONLY|syscall.O_CREAT, 0777)
+	return &linkRepository, nil
+}
+
+func (lfr *LinkFileRepository) InitLinkStoreFromRepository(store *storage.LinkStore) {
+	if lfr.fileName != "" {
+		file, err := os.OpenFile(lfr.fileName, syscall.O_RDONLY|syscall.O_CREAT, 0777)
 		if err != nil {
 			log.Fatalf("Error when opening/creating file: %s", err)
 		}
@@ -75,8 +76,7 @@ func NewLinkRepository(fileName string, linkStore *storage.LinkStore) (*LinkRepo
 			if err != nil {
 				log.Fatalf("Error when unmarshalling file %s at line %d", err, lineCounter)
 			}
-			linkRepository.size++
-			linkRepository.InMemory.AddLinkToMemStorage(link)
+			store.AddLinkToMemStorage(link)
 			lineCounter++
 		}
 		if err := fileScanner.Err(); err != nil {
@@ -87,52 +87,47 @@ func NewLinkRepository(fileName string, linkStore *storage.LinkStore) (*LinkRepo
 			log.Fatalf("Error when closing file: %s", err)
 		}
 	}
-
-	return &linkRepository, nil
 }
 
-func (lr *LinkRepository) Refresh(fileName string) {
-	lr.Lock()
-	defer lr.Unlock()
+func (lfr *LinkFileRepository) WriteLinkToRepository(link *storage.Link) error {
+	lfr.Lock()
+	defer lfr.Unlock()
 
-	for {
-		time.Sleep(1 * time.Millisecond)
-		itemsInMemStorage := lr.InMemory.GetSize()
-		if lr.repository.producer.file != nil && itemsInMemStorage > lr.size {
-
-			newProducer, err := RefreshProducer(fileName)
-			if err != nil {
-				log.Fatalf("Error when renewing producer: %s", err)
-				return
-			}
-			for _, link := range lr.InMemory.Links {
-				err := newProducer.WriteLink(&link)
-				if err != nil {
-					log.Fatal(err)
-				}
-			}
-			err = newProducer.Close()
-			if err != nil {
-				log.Fatalf("Error when closing producer: %s", err)
-				return
-			}
-		}
+	data, err := json.Marshal(&link)
+	if err != nil {
+		return err
 	}
+
+	file, err := os.OpenFile(lfr.fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
+	if err != nil {
+		return err
+	}
+
+	writer := bufio.NewWriter(file)
+
+	if _, err := writer.Write(data); err != nil {
+		return err
+	}
+
+	if err := writer.WriteByte('\n'); err != nil {
+		return err
+	}
+
+	err = writer.Flush()
+	if err != nil {
+		return err
+	}
+
+	err = file.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewProducer(fileName string) (*Producer, error) {
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
-	if err != nil {
-		return nil, err
-	}
-	return &Producer{
-		file:   file,
-		writer: bufio.NewWriter(file),
-	}, nil
-}
-
-func RefreshProducer(fileName string) (*Producer, error) {
-	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
 		return nil, err
 	}

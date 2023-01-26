@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
-
 	"github.com/go-chi/chi/v5"
 )
 
@@ -50,7 +49,11 @@ func (ls *LinkService) createLinkHandler(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	short := ls.store.CreateLink(string(LongURL))
+	short, err := ls.store.CreateLink(string(LongURL))
+	if err != nil {
+		log.Printf("Error creating link: %s\n", err)
+		return
+	}
 
 	responseBody, err := ls.store.GetLink(short)
 	if err != nil {
