@@ -41,11 +41,12 @@ func main() {
 
 	// Запускаем маршрутизацию
 	router := chi.NewRouter()
+	router.Use(mw.GzipMiddleware)
 	router.Mount("/", linkService.Routes())
 	router.Mount("/api", linkService.RestRoutes())
 
 	// Запускаем http-сервер
-	err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
+	err := http.ListenAndServe(lsc.Address, router)
 	if err != nil {
 		log.Printf("Error starting linkService: %s\n", err)
 		return
