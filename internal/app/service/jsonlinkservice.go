@@ -6,6 +6,9 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/ShishkovEM/amazing-shortener/internal/app/requests"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/responses"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -32,14 +35,6 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 
 func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Request) {
 	log.Printf("handling link create via #createLinkJSONHandler at %s\n", req.URL.Path)
-	// Структуры для запроса и ответа
-	type RequestLink struct {
-		URL string `json:"url" validate:"required,url"`
-	}
-
-	type ResponseShortLink struct {
-		Result string `json:"result"`
-	}
 
 	// Проверяем, что на вход получен JSON
 	contentType := req.Header.Get("Content-Type")
@@ -58,7 +53,7 @@ func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Re
 	dec := json.NewDecoder(req.Body)
 	dec.DisallowUnknownFields()
 
-	var rl RequestLink
+	var rl requests.RequestLink
 	if err := dec.Decode(&rl); err != nil {
 		log.Printf("Error decoding link request: %v\n", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -78,5 +73,5 @@ func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Re
 		return
 	}
 	log.Printf("created short id: %s\n", short)
-	renderJSON(w, ResponseShortLink{Result: ls.baseURL + short})
+	renderJSON(w, responses.ResponseShortLink{Result: ls.baseURL + short})
 }

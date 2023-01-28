@@ -8,7 +8,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/interfaces"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 )
 
 type LinkFileRepository struct {
@@ -64,7 +65,7 @@ func NewLinkFileRepository(fileName string) (*LinkFileRepository, error) {
 	return nil, nil
 }
 
-func (lfr *LinkFileRepository) InitLinkStoreFromRepository(store *storage.LinkStore) {
+func (lfr *LinkFileRepository) InitLinkStoreFromRepository(store interfaces.InMemoryStorage) {
 	if lfr.fileName != "" {
 		file, err := os.OpenFile(lfr.fileName, syscall.O_RDONLY|syscall.O_CREAT, 0777)
 		if err != nil {
@@ -74,7 +75,7 @@ func (lfr *LinkFileRepository) InitLinkStoreFromRepository(store *storage.LinkSt
 		fileScanner := bufio.NewScanner(file)
 		lineCounter := 1
 		for fileScanner.Scan() {
-			link := storage.Link{}
+			link := models.Link{}
 			err := json.Unmarshal(fileScanner.Bytes(), &link)
 			if err != nil {
 				log.Fatalf("Error when unmarshalling file %s at line %d", err, lineCounter)
@@ -92,7 +93,7 @@ func (lfr *LinkFileRepository) InitLinkStoreFromRepository(store *storage.LinkSt
 	}
 }
 
-func (lfr *LinkFileRepository) WriteLinkToRepository(link *storage.Link) error {
+func (lfr *LinkFileRepository) WriteLinkToRepository(link *models.Link) error {
 	lfr.Lock()
 	defer lfr.Unlock()
 
@@ -140,7 +141,7 @@ func NewProducer(fileName string) (*Producer, error) {
 	}, nil
 }
 
-func (p *Producer) WriteLink(link *storage.Link) error {
+func (p *Producer) WriteLink(link *models.Link) error {
 	p.Lock()
 	defer p.Unlock()
 
@@ -178,7 +179,7 @@ func NewConsumer(fileName string) (*Consumer, error) {
 	}, nil
 }
 
-func (c *Consumer) ReadLink() (*storage.Link, error) {
+func (c *Consumer) ReadLink() (*models.Link, error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -188,7 +189,7 @@ func (c *Consumer) ReadLink() (*storage.Link, error) {
 
 	data := c.scanner.Bytes()
 
-	link := storage.Link{}
+	link := models.Link{}
 
 	err := json.Unmarshal(data, &link)
 	if err != nil {
@@ -204,4 +205,16 @@ func (c *Consumer) Close() error {
 	defer c.Unlock()
 
 	return c.file.Close()
+}
+
+func WriteLinkToRepository(repo interfaces.LinkRepository, link *models.Link) error {
+	err := repo.WriteLinkToRepository(link)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func InitLinkStoreFromRepository(repo interfaces.LinkRepository, store interfaces.InMemoryStorage) {
+	repo.InitLinkStoreFromRepository(store)
 }

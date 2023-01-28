@@ -5,51 +5,43 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ShishkovEM/amazing-shortener/internal/app/interfaces"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/repository"
+
 	"github.com/speps/go-hashids"
 )
-
-type LinkRepository interface {
-	InitLinkStoreFromRepository(store *LinkStore)
-	WriteLinkToRepository(link *Link) error
-}
-
-// Link Структура записи информации о гиперссылках
-type Link struct {
-	ID       int    `json:"id"`       // Идентификатор гиперссылки
-	Original string `json:"original"` // Исходная (длинная) ссылка
-	Short    string `json:"short"`    // Короткая ссылка
-}
 
 // LinkStore Структура для хранения записей типа Link в оперативной памяти
 type LinkStore struct {
 	sync.Mutex
 
-	Links      map[string]Link
+	Links      map[string]models.Link
 	nextID     int
-	Repository LinkRepository
+	Repository interfaces.LinkRepository
 }
 
 // NewLinkStore Создаёт новый LinkStore
-func NewLinkStore(repo LinkRepository) *LinkStore {
+func NewLinkStore(repo interfaces.LinkRepository) *LinkStore {
 	ls := &LinkStore{}
-	ls.Links = make(map[string]Link)
+	ls.Links = make(map[string]models.Link)
 	ls.nextID = 0
 	if repo != nil {
 		ls.Repository = repo
-		InitLinkStoreFromRepository(ls.Repository, ls)
+		repository.InitLinkStoreFromRepository(ls.Repository, ls)
 	}
 	return ls
 }
 
 func NewLinkStoreInMemory() *LinkStore {
 	ls := &LinkStore{}
-	ls.Links = make(map[string]Link)
+	ls.Links = make(map[string]models.Link)
 	ls.nextID = 0
 
 	return ls
 }
 
-func (ls *LinkStore) AddLinkToMemStorage(link Link) {
+func (ls *LinkStore) AddLinkToMemStorage(link models.Link) {
 	ls.Lock()
 	defer ls.Unlock()
 
@@ -63,7 +55,7 @@ func (ls *LinkStore) CreateLink(longURL string) (string, error) {
 	ls.Lock()
 	defer ls.Unlock()
 
-	link := Link{
+	link := models.Link{
 		ID:       ls.nextID,
 		Original: longURL,
 		Short:    shorten(),
@@ -72,7 +64,7 @@ func (ls *LinkStore) CreateLink(longURL string) (string, error) {
 	ls.nextID++
 
 	if ls.Repository != nil {
-		err := WriteLinkToRepository(ls.Repository, &link)
+		err := repository.WriteLinkToRepository(ls.Repository, &link)
 		if err != nil {
 			return "", err
 		}
@@ -90,7 +82,7 @@ func shorten() string {
 }
 
 // GetLink получает запись об одной ссылке по её id
-func (ls *LinkStore) GetLink(short string) (Link, error) {
+func (ls *LinkStore) GetLink(short string) (models.Link, error) {
 	ls.Lock()
 	defer ls.Unlock()
 
@@ -99,22 +91,10 @@ func (ls *LinkStore) GetLink(short string) (Link, error) {
 	if ok {
 		return l, nil
 	} else {
-		return Link{}, fmt.Errorf("link with id=%s not found", short)
+		return models.Link{}, fmt.Errorf("link with id=%s not found", short)
 	}
 }
 
 func (ls *LinkStore) GetSize() int {
 	return len(ls.Links)
-}
-
-func WriteLinkToRepository(repo LinkRepository, link *Link) error {
-	err := repo.WriteLinkToRepository(link)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func InitLinkStoreFromRepository(repo LinkRepository, store *LinkStore) {
-	repo.InitLinkStoreFromRepository(store)
 }
