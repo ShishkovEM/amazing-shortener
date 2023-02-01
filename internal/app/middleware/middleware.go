@@ -52,12 +52,8 @@ func UnzipRequest(next http.Handler) http.Handler {
 					log.Fatalf("Error when closing gzipReader: %s", err)
 				}
 			}(gzr)
-			req, err := http.NewRequest(r.Method, r.RequestURI, reader)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			next.ServeHTTP(w, req)
+			r.Body = io.NopCloser(reader)
+			next.ServeHTTP(w, r)
 		} else {
 			next.ServeHTTP(w, r)
 		}

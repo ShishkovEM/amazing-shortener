@@ -6,3 +6,14 @@ type Link struct {
 	Original string `json:"original"` // Исходная (длинная) ссылка
 	Short    string `json:"short"`    // Короткая ссылка
 }
+
+type User struct {
+	ID      string
+	Urls    []Link
+	Session *Session
+}
+
+type Session struct {
+	ID        string
+	Signature string
+}
