@@ -12,8 +12,13 @@ import (
 	"time"
 )
 
-const authCookie = "Auth"
-const salt = "secret key"
+type key string
+
+const (
+	authCookie     = "Auth"
+	salt           = "secret key"
+	keyUserID  key = "userID"
+)
 
 func Authorize() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -37,7 +42,7 @@ func Authorize() func(next http.Handler) http.Handler {
 					})
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), "userID", getUserIDFromToken(token)))
+			r = r.WithContext(context.WithValue(r.Context(), keyUserID, getUserIDFromToken(token)))
 
 			next.ServeHTTP(w, r)
 		}
