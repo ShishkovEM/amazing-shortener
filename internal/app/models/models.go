@@ -5,10 +5,11 @@ type Link struct {
 	ID       int    `json:"id"`       // Идентификатор гиперссылки
 	Original string `json:"original"` // Исходная (длинная) ссылка
 	Short    string `json:"short"`    // Короткая ссылка
+	UserID   uint64 `json:"userID"`
 }
 
 type User struct {
-	ID      string
+	ID      uint64
 	Urls    []Link
 	Session *Session
 }

@@ -2,7 +2,7 @@ package interfaces
 
 import "github.com/ShishkovEM/amazing-shortener/internal/app/models"
 
-type InMemoryStorage interface {
+type InMemoryLinkStorage interface {
 	AddLinkToMemStorage(link models.Link)
 	CreateLink(longURL string) (string, error)
 	GetLink(short string) (models.Link, error)
@@ -10,6 +10,6 @@ type InMemoryStorage interface {
 }
 
 type LinkRepository interface {
-	InitLinkStoreFromRepository(store InMemoryStorage)
+	InitLinkStoreFromRepository(store InMemoryLinkStorage)
 	WriteLinkToRepository(link *models.Link) error
 }

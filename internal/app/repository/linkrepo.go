@@ -65,7 +65,7 @@ func NewLinkFileRepository(fileName string) (*LinkFileRepository, error) {
 	return nil, nil
 }
 
-func (lfr *LinkFileRepository) InitLinkStoreFromRepository(store interfaces.InMemoryStorage) {
+func (lfr *LinkFileRepository) InitLinkStoreFromRepository(store interfaces.InMemoryLinkStorage) {
 	if lfr.fileName != "" {
 		file, err := os.OpenFile(lfr.fileName, syscall.O_RDONLY|syscall.O_CREAT, 0777)
 		if err != nil {
@@ -215,6 +215,6 @@ func WriteLinkToRepository(repo interfaces.LinkRepository, link *models.Link) er
 	return nil
 }
 
-func InitLinkStoreFromRepository(repo interfaces.LinkRepository, store interfaces.InMemoryStorage) {
+func InitLinkStoreFromRepository(repo interfaces.LinkRepository, store interfaces.InMemoryLinkStorage) {
 	repo.InitLinkStoreFromRepository(store)
 }

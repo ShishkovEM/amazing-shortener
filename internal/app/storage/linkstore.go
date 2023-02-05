@@ -98,3 +98,15 @@ func (ls *LinkStore) GetLink(short string) (models.Link, error) {
 func (ls *LinkStore) GetSize() int {
 	return len(ls.Links)
 }
+
+func (ls *LinkStore) GetLinksByUserID(userID uint64) []*models.Link {
+	var userLinks []*models.Link
+
+	for _, value := range ls.Links {
+		if value.UserID == userID {
+			userLinks = append(userLinks, &value)
+		}
+	}
+
+	return userLinks
+}

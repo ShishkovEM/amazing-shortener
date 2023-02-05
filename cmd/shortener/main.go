@@ -41,6 +41,7 @@ func main() {
 
 	// Запускаем маршрутизацию
 	router := chi.NewRouter()
+	router.Use(mw.Authorize())
 	router.Mount("/", linkService.Routes())
 	router.Mount("/api", linkService.RestRoutes())
 
