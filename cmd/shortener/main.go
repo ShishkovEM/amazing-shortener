@@ -39,12 +39,19 @@ func main() {
 	// Создаём сервис для обработки create- и read- операций
 	linkService := service.NewLinkService(linkStorage, lsc.BaseURL+"/")
 
+	// Инициализируем подключение к БД
+	db := storage.NewDB(lsc.DatabaseDSN)
+
+	// Создаём сервис для работы с БД
+	dataBaseServce := service.NewDataBaseService(db)
+
 	// Запускаем маршрутизацию
 	router := chi.NewRouter()
 	router.Use(mw.GenerateAuthToken())
 	router.Mount("/", linkService.Routes())
 	router.Mount("/api", linkService.RestRoutes())
 	router.Mount("/api/user", linkService.UserLinkRoutes())
+	router.Mount("/ping", dataBaseServce.Routes())
 
 	// Запускаем http-сервер
 	err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))

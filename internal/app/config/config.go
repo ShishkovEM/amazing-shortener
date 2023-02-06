@@ -11,6 +11,7 @@ type LinkServiceConfig struct {
 	Address         string `env:"SERVER_ADDRESS"`
 	BaseURL         string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
 func (lsc *LinkServiceConfig) Parse() {
@@ -18,6 +19,7 @@ func (lsc *LinkServiceConfig) Parse() {
 	flag.StringVar(&lsc.Address, "a", "localhost:8080", "server address")
 	flag.StringVar(&lsc.BaseURL, "b", "http://localhost:8080", "base url")
 	flag.StringVar(&lsc.FileStoragePath, "f", "", "file storage path")
+	flag.StringVar(&lsc.DatabaseDSN, "d", "postgres://username:password@localhost:5432/amazing_shortener", "database dsn")
 	flag.Parse()
 
 	// Считываем конфигурацию с помощью переменных окружения
