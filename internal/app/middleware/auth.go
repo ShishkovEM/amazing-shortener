@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+type userIDKey struct{}
+
 const (
 	authTokenName = "AuthToken"
 	salt          = "secret key"
@@ -39,7 +41,9 @@ func GenerateAuthToken() func(next http.Handler) http.Handler {
 					})
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), "userID", getUserIDFromAuthToken(authToken)))
+			context.WithValue(context.Background(), userIDKey{}, "userID")
+
+			r = r.WithContext(context.WithValue(r.Context(), userIDKey{}, getUserIDFromAuthToken(authToken)))
 
 			next.ServeHTTP(w, r)
 		}
