@@ -10,24 +10,24 @@ import (
 )
 
 type DBLinkStorage struct {
-	Db *models.DB
+	DB *models.DB
 }
 
 func NewDBURLStorage(db *models.DB) *DBLinkStorage {
 	return &DBLinkStorage{
-		Db: db,
+		DB: db,
 	}
 }
 
 func (d *DBLinkStorage) GetLink(shortID string) (string, error) {
 	var originalURL string
 
-	conn, err := d.Db.GetConn(context.Background())
+	conn, err := d.DB.GetConn(context.Background())
 	if err != nil {
 		return "", err
 	}
 
-	defer d.Db.Close()
+	defer d.DB.Close()
 
 	err = conn.QueryRow(context.Background(), "SELECT original_url FROM urls WHERE short_url = $1 LIMIT 1", shortID).Scan(&originalURL)
 	if err != nil {
@@ -42,12 +42,12 @@ func (d *DBLinkStorage) GetLink(shortID string) (string, error) {
 }
 
 func (d *DBLinkStorage) CreateLink(shortID string, originalURL string, userID uint32) {
-	conn, err := d.Db.GetConn(context.Background())
+	conn, err := d.DB.GetConn(context.Background())
 	if err != nil {
 		panic(err)
 	}
 
-	defer d.Db.Close()
+	defer d.DB.Close()
 
 	_, err = conn.Exec(context.Background(), "INSERT INTO urls (short_url, original_url, user_id, created_at) VALUES ($1,$2,$3,$4)", shortID, originalURL, userID, time.Now())
 	if err != nil {
@@ -58,12 +58,12 @@ func (d *DBLinkStorage) CreateLink(shortID string, originalURL string, userID ui
 func (d *DBLinkStorage) GetLinksByUserID(userID uint32) []responses.ResponseShortOriginalLink {
 	userURLs := make([]responses.ResponseShortOriginalLink, 0)
 
-	conn, err := d.Db.GetConn(context.Background())
+	conn, err := d.DB.GetConn(context.Background())
 	if err != nil {
 		return userURLs
 	}
 
-	defer d.Db.Close()
+	defer d.DB.Close()
 
 	rows, err := conn.Query(context.Background(), "SELECT short_url, original_url FROM urls WHERE user_id = $1", userID)
 	if err != nil {

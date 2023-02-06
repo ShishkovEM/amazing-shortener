@@ -72,10 +72,6 @@ func (sadbs *StandAloneDBService) createLinkHandler(w http.ResponseWriter, req *
 	}
 
 	sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
-	if err != nil {
-		log.Printf("Error creating link: %s\n", err)
-		return
-	}
 
 	log.Printf("created short id: %s\n", link.Short)
 
@@ -176,9 +172,9 @@ func (sadbs *StandAloneDBService) getLinksByUserIDHandler(w http.ResponseWriter,
 
 func (sadbs *StandAloneDBService) ping() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer sadbs.store.Db.Close()
+		defer sadbs.store.DB.Close()
 
-		conn, err := sadbs.store.Db.GetConn(r.Context())
+		conn, err := sadbs.store.DB.GetConn(r.Context())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
