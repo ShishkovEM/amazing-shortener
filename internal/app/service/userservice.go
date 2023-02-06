@@ -20,10 +20,10 @@ func (ls *LinkService) getLinksByUserIDHandler(w http.ResponseWriter, r *http.Re
 	w.Header().Set("content-type", "application/json")
 
 	rawUserID := r.Context().Value(middleware.ContextKeyUserID)
-	var userID uint64
+	var userID uint32
 
 	switch uidType := rawUserID.(type) {
-	case uint64:
+	case uint32:
 		userID = uidType
 	}
 

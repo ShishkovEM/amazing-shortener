@@ -38,10 +38,10 @@ func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Re
 	log.Printf("handling link create via #createLinkJSONHandler at %s\n", req.URL.Path)
 
 	rawUserID := req.Context().Value(middleware.ContextKeyUserID)
-	var userID uint64
+	var userID uint32
 
 	switch uidType := rawUserID.(type) {
-	case uint64:
+	case uint32:
 		userID = uidType
 	}
 

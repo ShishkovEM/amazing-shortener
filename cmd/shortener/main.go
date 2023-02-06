@@ -22,41 +22,65 @@ func main() {
 	// Считываем конфигурацию для LinkService
 	lsc.Parse()
 
-	var linkStorage *storage.LinkStore
+	// Проверяем, требуется ли подключение к БД
+	var DB storage.DB
+	var dbModel = &DB
 
-	// Создаём файловый репозиторий и хранилище ссылок
-	if lsc.FileStoragePath != "" {
-		linkFileRepository, err := repository.NewLinkFileRepository(lsc.FileStoragePath)
+	if lsc.DatabaseDSN != "" {
+		dbModel = storage.NewDB(lsc.DatabaseDSN)
+		dbModel.CreateTables()
+
+		linkStorage := repository.NewDBURLStorage(dbModel)
+		linkService := service.NewStandAloneDBService(linkStorage, lsc.BaseURL+"/")
+
+		// Запускаем маршрутизацию
+		router := chi.NewRouter()
+		router.Use(mw.GenerateAuthToken())
+		router.Mount("/", linkService.Routes())
+
+		// Запускаем http-сервер
+		err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
 		if err != nil {
-			log.Printf("Error creating linkRepository: %s\n", err)
+			log.Printf("Error starting linkService: %s\n", err)
 			return
 		}
-		linkStorage = storage.NewLinkStore(linkFileRepository)
+
 	} else {
-		linkStorage = storage.NewLinkStoreInMemory()
-	}
+		db := storage.NewDB(lsc.DatabaseDSN)
 
-	// Создаём сервис для обработки create- и read- операций
-	linkService := service.NewLinkService(linkStorage, lsc.BaseURL+"/")
+		var linkStorage *storage.LinkStore
 
-	// Инициализируем подключение к БД
-	db := storage.NewDB(lsc.DatabaseDSN)
+		// Создаём сервис для работы с БД
+		dataBaseService := service.NewDataBaseService(db)
 
-	// Создаём сервис для работы с БД
-	dataBaseServce := service.NewDataBaseService(db)
+		// Создаём файловый репозиторий и хранилище ссылок
+		if lsc.FileStoragePath != "" {
+			linkFileRepository, err := repository.NewLinkFileRepository(lsc.FileStoragePath)
+			if err != nil {
+				log.Printf("Error creating linkRepository: %s\n", err)
+				return
+			}
+			linkStorage = storage.NewLinkStore(linkFileRepository)
+		} else {
+			linkStorage = storage.NewLinkStoreInMemory()
+		}
 
-	// Запускаем маршрутизацию
-	router := chi.NewRouter()
-	router.Use(mw.GenerateAuthToken())
-	router.Mount("/", linkService.Routes())
-	router.Mount("/api", linkService.RestRoutes())
-	router.Mount("/api/user", linkService.UserLinkRoutes())
-	router.Mount("/ping", dataBaseServce.Routes())
+		// Создаём сервис для обработки create- и read- операций
+		linkService := service.NewLinkService(linkStorage, lsc.BaseURL+"/")
 
-	// Запускаем http-сервер
-	err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
-	if err != nil {
-		log.Printf("Error starting linkService: %s\n", err)
-		return
+		// Запускаем маршрутизацию
+		router := chi.NewRouter()
+		router.Use(mw.GenerateAuthToken())
+		router.Mount("/", linkService.Routes())
+		router.Mount("/api", linkService.RestRoutes())
+		router.Mount("/api/user", linkService.UserLinkRoutes())
+		router.Mount("/ping", dataBaseService.Routes())
+
+		// Запускаем http-сервер
+		err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
+		if err != nil {
+			log.Printf("Error starting linkService: %s\n", err)
+			return
+		}
 	}
 }

@@ -51,7 +51,7 @@ func (ls *LinkStore) AddLinkToMemStorage(link models.Link) {
 }
 
 // CreateLink создаёт новую запись в LinkStore
-func (ls *LinkStore) CreateLink(longURL string, userID uint64) (string, error) {
+func (ls *LinkStore) CreateLink(longURL string, userID uint32) (string, error) {
 	ls.Lock()
 	defer ls.Unlock()
 
@@ -100,7 +100,7 @@ func (ls *LinkStore) GetSize() int {
 	return len(ls.Links)
 }
 
-func (ls *LinkStore) GetLinksByUserID(userID uint64) []models.Link {
+func (ls *LinkStore) GetLinksByUserID(userID uint32) []models.Link {
 	var userLinks []models.Link
 
 	for _, value := range ls.Links {

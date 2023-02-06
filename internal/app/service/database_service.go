@@ -12,7 +12,7 @@ import (
 type DBService struct {
 	sync.Mutex
 
-	db *storage.DB
+	Db *storage.DB
 }
 
 func (dbs *DBService) Routes() chi.Router {
@@ -23,16 +23,16 @@ func (dbs *DBService) Routes() chi.Router {
 
 func NewDataBaseService(store *storage.DB) *DBService {
 	dbs := &DBService{
-		db: store,
+		Db: store,
 	}
 	return dbs
 }
 
 func (dbs *DBService) ping() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defer dbs.db.Close()
+		defer dbs.Db.Close()
 
-		conn, err := dbs.db.GetConn(r.Context())
+		conn, err := dbs.Db.GetConn(r.Context())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

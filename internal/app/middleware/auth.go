@@ -69,31 +69,31 @@ func validateAuthToken(authToken string) bool {
 		return false
 	}
 	h := hmac.New(sha256.New, []byte(salt))
-	h.Write(data[:8])
+	h.Write(data[:4])
 	sign = h.Sum(nil)
 
-	if hmac.Equal(sign, data[8:]) {
+	if hmac.Equal(sign, data[4:]) {
 		return true
 	} else {
 		return false
 	}
 }
 
-func getUserIDFromAuthToken(authToken string) uint64 {
+func getUserIDFromAuthToken(authToken string) uint32 {
 	data, _ := hex.DecodeString(authToken)
-	id := binary.BigEndian.Uint64(data[:8])
+	id := binary.BigEndian.Uint32(data[:4])
 
 	return id
 }
 
 func generateAuthToken() string {
-	b := make([]byte, 8)
+	b := make([]byte, 4)
 	_, _ = rand.Read(b)
 
 	mrand.Seed(time.Now().UnixNano())
-	id := mrand.Uint64()
+	id := mrand.Uint32()
 
-	binary.BigEndian.PutUint64(b, id)
+	binary.BigEndian.PutUint32(b, id)
 
 	h := hmac.New(sha256.New, []byte(salt))
 	h.Write(b)

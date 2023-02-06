@@ -19,7 +19,7 @@ func (lsc *LinkServiceConfig) Parse() {
 	flag.StringVar(&lsc.Address, "a", "localhost:8080", "server address")
 	flag.StringVar(&lsc.BaseURL, "b", "http://localhost:8080", "base url")
 	flag.StringVar(&lsc.FileStoragePath, "f", "", "file storage path")
-	flag.StringVar(&lsc.DatabaseDSN, "d", "postgres://username:password@localhost:5432/amazing_shortener", "database dsn")
+	flag.StringVar(&lsc.DatabaseDSN, "d", "", "database dsn")
 	flag.Parse()
 
 	// Считываем конфигурацию с помощью переменных окружения
@@ -39,6 +39,9 @@ func (lsc *LinkServiceConfig) Parse() {
 	}
 	if envCfg.BaseURL != "" {
 		lsc.BaseURL = envCfg.BaseURL
+	}
+	if envCfg.DatabaseDSN != "" {
+		lsc.DatabaseDSN = envCfg.DatabaseDSN
 	}
 
 }
