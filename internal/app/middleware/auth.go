@@ -42,7 +42,7 @@ func GenerateAuthToken() func(next http.Handler) http.Handler {
 					})
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), UserIDKey, getUserIDFromAuthToken(authToken)))
+			r = r.WithContext(context.WithValue(r.Context(), string(UserIDKey), getUserIDFromAuthToken(authToken)))
 
 			next.ServeHTTP(w, r)
 		}
