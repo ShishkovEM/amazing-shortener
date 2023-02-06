@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/ShishkovEM/amazing-shortener/internal/app/middleware"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/responses"
 
 	"github.com/go-chi/chi/v5"
@@ -18,7 +19,7 @@ func (ls *LinkService) UserLinkRoutes() chi.Router {
 func (ls *LinkService) getLinksByUserIDHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/json")
 
-	rawUserID := r.Context().Value("userID")
+	rawUserID := r.Context().Value(middleware.ContextKeyUserID)
 	var userID uint64
 
 	switch uidType := rawUserID.(type) {

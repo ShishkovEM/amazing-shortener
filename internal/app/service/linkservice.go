@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/ShishkovEM/amazing-shortener/internal/app/middleware"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
 
 	"github.com/go-chi/chi/v5"
@@ -38,7 +39,7 @@ func (ls *LinkService) Routes() chi.Router {
 func (ls *LinkService) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	log.Printf("handling link create at %s\n", req.URL.Path)
 
-	rawUserID := req.Context().Value("userID")
+	rawUserID := req.Context().Value(middleware.ContextKeyUserID)
 	var userID uint64
 
 	switch uidType := rawUserID.(type) {

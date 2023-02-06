@@ -6,6 +6,7 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/ShishkovEM/amazing-shortener/internal/app/middleware"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/requests"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/responses"
 
@@ -36,7 +37,7 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Request) {
 	log.Printf("handling link create via #createLinkJSONHandler at %s\n", req.URL.Path)
 
-	rawUserID := req.Context().Value("userID")
+	rawUserID := req.Context().Value(middleware.ContextKeyUserID)
 	var userID uint64
 
 	switch uidType := rawUserID.(type) {
