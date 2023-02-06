@@ -7,42 +7,37 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	mathRand "math/rand"
+	mrand "math/rand"
 	"net/http"
 	"time"
 )
 
-type key string
+const authTokenName = "AuthToken"
+const secretKey = "my perfect project"
 
-const (
-	authCookie     = "Auth"
-	salt           = "secret key"
-	keyUserID  key = "userID"
-)
-
-func Authorize() func(next http.Handler) http.Handler {
+func GenerateAuthToken() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			token := ""
+			authToken := ""
 			cookies := r.Cookies()
 
 			for _, cookie := range cookies {
-				if cookie.Name == authCookie {
-					token = cookie.Value
+				if cookie.Name == authTokenName {
+					authToken = cookie.Value
 				}
 			}
 
-			if token == "" || !validateToken(token) {
-				token = generateToken()
+			if authToken == "" || !validateAuthToken(authToken) {
+				authToken = generateAuthToken()
 				http.SetCookie(
 					w,
 					&http.Cookie{
-						Name:  authCookie,
-						Value: token,
+						Name:  authTokenName,
+						Value: authToken,
 					})
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), keyUserID, getUserIDFromToken(token)))
+			r = r.WithContext(context.WithValue(r.Context(), "userID", getUserIDFromAuthToken(authToken)))
 
 			next.ServeHTTP(w, r)
 		}
@@ -50,14 +45,14 @@ func Authorize() func(next http.Handler) http.Handler {
 	}
 }
 
-func validateToken(token string) bool {
+func validateAuthToken(authToken string) bool {
 	var (
 		data []byte // декодированное сообщение с подписью
 		err  error
 		sign []byte // HMAC-подпись от идентификатора
 	)
 
-	data, err = hex.DecodeString(token)
+	data, err = hex.DecodeString(authToken)
 	if err != nil {
 		return false
 	}
@@ -65,7 +60,7 @@ func validateToken(token string) bool {
 	if len(data) < 5 {
 		return false
 	}
-	h := hmac.New(sha256.New, []byte(salt))
+	h := hmac.New(sha256.New, []byte(secretKey))
 	h.Write(data[:8])
 	sign = h.Sum(nil)
 
@@ -76,27 +71,27 @@ func validateToken(token string) bool {
 	}
 }
 
-func getUserIDFromToken(token string) uint64 {
-	data, _ := hex.DecodeString(token)
+func getUserIDFromAuthToken(authToken string) uint64 {
+	data, _ := hex.DecodeString(authToken)
 	id := binary.BigEndian.Uint64(data[:8])
 
 	return id
 }
 
-func generateToken() string {
+func generateAuthToken() string {
 	b := make([]byte, 8)
 	_, _ = rand.Read(b)
 
-	mathRand.Seed(time.Now().UnixNano())
-	id := mathRand.Uint64()
+	mrand.Seed(time.Now().UnixNano())
+	id := mrand.Uint64()
 
 	binary.BigEndian.PutUint64(b, id)
 
-	h := hmac.New(sha256.New, []byte(salt))
+	h := hmac.New(sha256.New, []byte(secretKey))
 	h.Write(b)
 	sign := h.Sum(nil)
 
-	token := append(b, sign...)
+	authToken := append(b, sign...)
 
-	return hex.EncodeToString(token)
+	return hex.EncodeToString(authToken)
 }
