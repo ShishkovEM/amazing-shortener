@@ -12,8 +12,13 @@ import (
 	"time"
 )
 
-const authTokenName = "AuthToken"
-const secretKey = "my perfect project"
+type key string
+
+const (
+	authTokenName     = "AuthToken"
+	salt              = "secret key"
+	keyUserID     key = "userID"
+)
 
 func GenerateAuthToken() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -37,7 +42,7 @@ func GenerateAuthToken() func(next http.Handler) http.Handler {
 					})
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), "userID", getUserIDFromAuthToken(authToken)))
+			r = r.WithContext(context.WithValue(r.Context(), keyUserID, getUserIDFromAuthToken(authToken)))
 
 			next.ServeHTTP(w, r)
 		}
@@ -60,7 +65,7 @@ func validateAuthToken(authToken string) bool {
 	if len(data) < 5 {
 		return false
 	}
-	h := hmac.New(sha256.New, []byte(secretKey))
+	h := hmac.New(sha256.New, []byte(salt))
 	h.Write(data[:8])
 	sign = h.Sum(nil)
 
@@ -87,7 +92,7 @@ func generateAuthToken() string {
 
 	binary.BigEndian.PutUint64(b, id)
 
-	h := hmac.New(sha256.New, []byte(secretKey))
+	h := hmac.New(sha256.New, []byte(salt))
 	h.Write(b)
 	sign := h.Sum(nil)
 
