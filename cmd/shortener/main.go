@@ -44,6 +44,7 @@ func main() {
 	router.Use(mw.Authorize())
 	router.Mount("/", linkService.Routes())
 	router.Mount("/api", linkService.RestRoutes())
+	router.Mount("/api/user", linkService.UserLinkRoutes())
 
 	// Запускаем http-сервер
 	err := http.ListenAndServe(lsc.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
