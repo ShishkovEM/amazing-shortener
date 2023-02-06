@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"mime"
 	"net/http"
@@ -15,7 +16,8 @@ import (
 
 func (ls *LinkService) RestRoutes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/shorten", ls.createLinkJSONHandler) // Создание новой сокращённой ссылки
+	r.Post("/shorten", ls.createLinkJSONHandler)         // Создание новой сокращённой ссылки
+	r.Post("/shorten/batch", ls.createLinksBatchHandler) // Пакетное создание ссылок
 	return r
 }
 
@@ -83,4 +85,49 @@ func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Re
 	}
 	log.Printf("created short id: %s\n", short)
 	renderJSON(w, responses.ResponseShortLink{Result: ls.baseURL + short})
+}
+
+func (ls *LinkService) createLinksBatchHandler(w http.ResponseWriter, req *http.Request) {
+	var request []requests.RequestLinksBatch
+	var result []responses.ResponseLinksBatch
+
+	rawUserID := req.Context().Value(middleware.ContextKeyUserID)
+	var userID uint32
+
+	switch uidType := rawUserID.(type) {
+	case uint32:
+		userID = uidType
+	}
+
+	b, _ := io.ReadAll(req.Body)
+	err := json.Unmarshal(b, &request)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if len(request) == 0 {
+		http.Error(w, `{"error":"URLs in body are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	for _, data := range request {
+		shortURL, err := ls.store.CreateLink(data.OriginalURL, userID)
+		if err != nil {
+			log.Printf("Error creating link in batch")
+			return
+		}
+		result = append(result, responses.ResponseLinksBatch{CorrelationID: data.CorrelationID, ShortURL: shortURL})
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	responseBytes, _ := json.Marshal(result)
+
+	_, err = w.Write(responseBytes)
+	if err != nil {
+		return
+	}
 }

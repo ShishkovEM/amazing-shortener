@@ -33,11 +33,12 @@ func NewStandAloneDBService(store *repository.DBLinkStorage, baseURL string) *St
 
 func (sadbs *StandAloneDBService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/", sadbs.createLinkHandler)                // Создание новой сокращённой ссылки
-	r.Get("/{short}", sadbs.getLinkHandler)             // Восстановление ссылки
-	r.Post("/api/shorten", sadbs.createLinkJSONHandler) // Создание новой сокращённой ссылки
-	r.Get("/api/urls", sadbs.getLinksByUserIDHandler)   // Получение ссылок, созданных полизователем
-	r.Get("/ping", sadbs.ping())
+	r.Post("/", sadbs.createLinkHandler)                    // Создание новой сокращённой ссылки
+	r.Get("/{short}", sadbs.getLinkHandler)                 // Восстановление ссылки
+	r.Post("/api/shorten", sadbs.createLinkJSONHandler)     // Создание новой сокращённой ссылки
+	r.Get("/api/urls", sadbs.getLinksByUserIDHandler)       // Получение ссылок, созданных полизователем
+	r.Get("/ping", sadbs.ping())                            // Пинг соединения с БД
+	r.Post("/shorten/batch", sadbs.createLinksBatchHandler) // Пакетное создание ссылок
 
 	return r
 }
@@ -188,6 +189,53 @@ func (sadbs *StandAloneDBService) ping() http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (sadbs *StandAloneDBService) createLinksBatchHandler(w http.ResponseWriter, req *http.Request) {
+	var request []requests.RequestLinksBatch
+	var result []responses.ResponseLinksBatch
+
+	rawUserID := req.Context().Value(middleware.ContextKeyUserID)
+	var userID uint32
+
+	switch uidType := rawUserID.(type) {
+	case uint32:
+		userID = uidType
+	}
+
+	b, _ := io.ReadAll(req.Body)
+	err := json.Unmarshal(b, &request)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if len(request) == 0 {
+		http.Error(w, `{"error":"URLs in body are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	for _, data := range request {
+
+		link := models.Link{
+			Original: data.OriginalURL,
+			Short:    shorten(),
+			UserID:   userID,
+		}
+		sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
+		result = append(result, responses.ResponseLinksBatch{CorrelationID: data.CorrelationID, ShortURL: link.Short})
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	responseBytes, _ := json.Marshal(result)
+
+	_, err = w.Write(responseBytes)
+	if err != nil {
+		return
 	}
 }
 
