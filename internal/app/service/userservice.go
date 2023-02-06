@@ -11,7 +11,7 @@ import (
 
 func (ls *LinkService) UserLinkRoutes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/urls", ls.getLinksByUserIDHandler) // Получение ссылок, созданных полизователем
+	r.Get("/urls", ls.getLinksByUserIDHandler) // Получение ссылок, созданных полизователем
 	return r
 }
 
