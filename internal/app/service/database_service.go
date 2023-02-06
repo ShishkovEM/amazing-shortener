@@ -1,10 +1,9 @@
 package service
 
 import (
+	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"net/http"
 	"sync"
-
-	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -12,7 +11,7 @@ import (
 type DBService struct {
 	sync.Mutex
 
-	Db *storage.DB
+	Db *models.DB
 }
 
 func (dbs *DBService) Routes() chi.Router {
@@ -21,7 +20,7 @@ func (dbs *DBService) Routes() chi.Router {
 	return r
 }
 
-func NewDataBaseService(store *storage.DB) *DBService {
+func NewDataBaseService(store *models.DB) *DBService {
 	dbs := &DBService{
 		Db: store,
 	}

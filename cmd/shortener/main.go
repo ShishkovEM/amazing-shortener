@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"log"
 	"net/http"
 
@@ -23,11 +24,11 @@ func main() {
 	lsc.Parse()
 
 	// Проверяем, требуется ли подключение к БД
-	var DB storage.DB
+	var DB models.DB
 	var dbModel = &DB
 
 	if lsc.DatabaseDSN != "" {
-		dbModel = storage.NewDB(lsc.DatabaseDSN)
+		dbModel = models.NewDB(lsc.DatabaseDSN)
 		dbModel.CreateTables()
 
 		linkStorage := repository.NewDBURLStorage(dbModel)
@@ -46,7 +47,7 @@ func main() {
 		}
 
 	} else {
-		db := storage.NewDB(lsc.DatabaseDSN)
+		db := models.NewDB(lsc.DatabaseDSN)
 
 		var linkStorage *storage.LinkStore
 

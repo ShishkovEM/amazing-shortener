@@ -5,15 +5,15 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/responses"
-	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
 )
 
 type DBLinkStorage struct {
-	Db *storage.DB
+	Db *models.DB
 }
 
-func NewDBURLStorage(db *storage.DB) *DBLinkStorage {
+func NewDBURLStorage(db *models.DB) *DBLinkStorage {
 	return &DBLinkStorage{
 		Db: db,
 	}
