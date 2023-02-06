@@ -33,12 +33,12 @@ func NewStandAloneDBService(store *repository.DBLinkStorage, baseURL string) *St
 
 func (sadbs *StandAloneDBService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/", sadbs.createLinkHandler)                    // Создание новой сокращённой ссылки
-	r.Get("/{short}", sadbs.getLinkHandler)                 // Восстановление ссылки
-	r.Post("/api/shorten", sadbs.createLinkJSONHandler)     // Создание новой сокращённой ссылки
-	r.Get("/api/urls", sadbs.getLinksByUserIDHandler)       // Получение ссылок, созданных полизователем
-	r.Get("/ping", sadbs.ping())                            // Пинг соединения с БД
-	r.Post("/shorten/batch", sadbs.createLinksBatchHandler) // Пакетное создание ссылок
+	r.Post("/", sadbs.createLinkHandler)                        // Создание новой сокращённой ссылки
+	r.Get("/{short}", sadbs.getLinkHandler)                     // Восстановление ссылки
+	r.Post("/api/shorten", sadbs.createLinkJSONHandler)         // Создание новой сокращённой ссылки
+	r.Get("/api/urls", sadbs.getLinksByUserIDHandler)           // Получение ссылок, созданных полизователем
+	r.Get("/ping", sadbs.ping())                                // Пинг соединения с БД
+	r.Post("/api/shorten/batch", sadbs.createLinksBatchHandler) // Пакетное создание ссылок
 
 	return r
 }
