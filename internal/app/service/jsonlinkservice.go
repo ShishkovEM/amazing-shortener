@@ -118,7 +118,7 @@ func (ls *LinkService) createLinksBatchHandler(w http.ResponseWriter, req *http.
 			log.Printf("Error creating link in batch")
 			return
 		}
-		result = append(result, responses.ResponseLinksBatch{CorrelationID: data.CorrelationID, ShortURL: shortURL})
+		result = append(result, responses.ResponseLinksBatch{CorrelationID: data.CorrelationID, ShortURL: ls.baseURL + shortURL})
 	}
 
 	w.Header().Set("content-type", "application/json")

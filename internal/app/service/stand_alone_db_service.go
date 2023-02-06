@@ -225,7 +225,7 @@ func (sadbs *StandAloneDBService) createLinksBatchHandler(w http.ResponseWriter,
 			UserID:   userID,
 		}
 		sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
-		result = append(result, responses.ResponseLinksBatch{CorrelationID: data.CorrelationID, ShortURL: link.Short})
+		result = append(result, responses.ResponseLinksBatch{CorrelationID: data.CorrelationID, ShortURL: sadbs.baseURL + link.Short})
 	}
 
 	w.Header().Set("content-type", "application/json")
