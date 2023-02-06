@@ -6,12 +6,13 @@ import (
 
 const (
 	testedLongURL = "http://ya.ru/"
+	testUserID    = 999
 )
 
 func TestCreateAndGetLink(t *testing.T) {
 	// Создаём и сохраняем запись об одной ссылке
 	ls := NewLinkStoreInMemory()
-	short, err := ls.CreateLink(testedLongURL)
+	short, err := ls.CreateLink(testedLongURL, testUserID)
 	if err != nil {
 		t.Fatal(err)
 	}

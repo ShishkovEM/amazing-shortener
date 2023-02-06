@@ -36,6 +36,14 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Request) {
 	log.Printf("handling link create via #createLinkJSONHandler at %s\n", req.URL.Path)
 
+	rawUserID := req.Context().Value("userID")
+	var userID uint64
+
+	switch uidType := rawUserID.(type) {
+	case uint64:
+		userID = uidType
+	}
+
 	// Проверяем, что на вход получен JSON
 	contentType := req.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(contentType)
@@ -67,7 +75,7 @@ func (ls *LinkService) createLinkJSONHandler(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	short, err := ls.store.CreateLink(rl.URL)
+	short, err := ls.store.CreateLink(rl.URL, userID)
 	if err != nil {
 		log.Printf("Error creating link: %s\n", err)
 		return

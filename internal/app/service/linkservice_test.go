@@ -18,6 +18,7 @@ const (
 	linkServicePort  = "8080"
 	testedLongURL    = "http://ya.ru/"
 	testedInvalidURL = "not URL at all"
+	testUserID       = 999
 )
 
 func testHTTPResponse(t *testing.T, r chi.Router, req *http.Request, f func(w *httptest.ResponseRecorder) bool) {
@@ -74,7 +75,7 @@ func TestLinkServer_GetLinkHandlerPositive(t *testing.T) {
 	ls := NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
 	r := ls.Routes()
 
-	short, err := ls.store.CreateLink(testedLongURL)
+	short, err := ls.store.CreateLink(testedLongURL, testUserID)
 	if err != nil {
 		t.Fatal(err)
 	}

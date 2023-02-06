@@ -36,7 +36,7 @@ func (ls *LinkService) getLinksByUserIDHandler(w http.ResponseWriter, r *http.Re
 
 	responseBytes, _ := json.Marshal(response)
 
-	if len(response) == 0 {
+	if len(userLinks) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 	} else {
 		w.WriteHeader(http.StatusOK)

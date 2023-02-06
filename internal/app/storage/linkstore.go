@@ -51,7 +51,7 @@ func (ls *LinkStore) AddLinkToMemStorage(link models.Link) {
 }
 
 // CreateLink создаёт новую запись в LinkStore
-func (ls *LinkStore) CreateLink(longURL string) (string, error) {
+func (ls *LinkStore) CreateLink(longURL string, userID uint64) (string, error) {
 	ls.Lock()
 	defer ls.Unlock()
 
@@ -59,6 +59,7 @@ func (ls *LinkStore) CreateLink(longURL string) (string, error) {
 		ID:       ls.nextID,
 		Original: longURL,
 		Short:    shorten(),
+		UserID:   userID,
 	}
 	ls.Links[link.Short] = link
 	ls.nextID++

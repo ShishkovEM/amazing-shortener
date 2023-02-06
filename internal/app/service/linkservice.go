@@ -38,6 +38,14 @@ func (ls *LinkService) Routes() chi.Router {
 func (ls *LinkService) createLinkHandler(w http.ResponseWriter, req *http.Request) {
 	log.Printf("handling link create at %s\n", req.URL.Path)
 
+	rawUserID := req.Context().Value("userID")
+	var userID uint64
+
+	switch uidType := rawUserID.(type) {
+	case uint64:
+		userID = uidType
+	}
+
 	LongURL, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -50,7 +58,7 @@ func (ls *LinkService) createLinkHandler(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	short, err := ls.store.CreateLink(string(LongURL))
+	short, err := ls.store.CreateLink(string(LongURL), userID)
 	if err != nil {
 		log.Printf("Error creating link: %s\n", err)
 		return
