@@ -53,11 +53,11 @@ func (d *DB) CreateTables() {
 	}
 
 	_, err = conn.Exec(context.Background(), "CREATE TABLE IF NOT EXISTS urls ("+
-		"short_url text COLLATE pg_catalog.\"default\" NOT NULL,"+
+		"short_uri text COLLATE pg_catalog.\"default\" NOT NULL,"+
 		"original_url text COLLATE pg_catalog.\"default\" NOT NULL,"+
 		"user_id bigint NOT NULL,"+
 		"created_at timestamp with time zone,"+
-		"CONSTRAINT urls_pkey PRIMARY KEY (short_url)"+
+		"CONSTRAINT urls_pkey PRIMARY KEY (original_url)"+
 		")")
 
 	if err != nil {

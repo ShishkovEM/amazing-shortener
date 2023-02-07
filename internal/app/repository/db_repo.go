@@ -3,10 +3,14 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
+	"github.com/ShishkovEM/amazing-shortener/internal/app/exceptions"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/responses"
+
+	"github.com/jackc/pgerrcode"
 )
 
 type DBLinkStorage struct {
@@ -29,7 +33,7 @@ func (d *DBLinkStorage) GetLink(shortID string) (string, error) {
 
 	defer d.DB.Close()
 
-	err = conn.QueryRow(context.Background(), "SELECT original_url FROM urls WHERE short_url = $1 LIMIT 1", shortID).Scan(&originalURL)
+	err = conn.QueryRow(context.Background(), "SELECT original_url FROM urls WHERE short_uri = $1 LIMIT 1", shortID).Scan(&originalURL)
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +45,29 @@ func (d *DBLinkStorage) GetLink(shortID string) (string, error) {
 	return originalURL, nil
 }
 
-func (d *DBLinkStorage) CreateLink(shortID string, originalURL string, userID uint32) {
+func (d *DBLinkStorage) GetShortURIByOriginalURL(originalURL string) (string, error) {
+	var shortURI string
+
+	conn, err := d.DB.GetConn(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	defer d.DB.Close()
+
+	err = conn.QueryRow(context.Background(), "SELECT short_uri FROM urls WHERE original_url = $1 LIMIT 1", originalURL).Scan(&shortURI)
+	if err != nil {
+		panic(err)
+	}
+
+	if shortURI == "" {
+		return "", errors.New("not found")
+	}
+
+	return shortURI, nil
+}
+
+func (d *DBLinkStorage) CreateLink(shortID string, originalURL string, userID uint32) error {
 	conn, err := d.DB.GetConn(context.Background())
 	if err != nil {
 		panic(err)
@@ -50,9 +76,16 @@ func (d *DBLinkStorage) CreateLink(shortID string, originalURL string, userID ui
 	defer d.DB.Close()
 
 	_, err = conn.Exec(context.Background(), "INSERT INTO urls (short_url, original_url, user_id, created_at) VALUES ($1,$2,$3,$4)", shortID, originalURL, userID, time.Now())
+
+	if err != nil && strings.Contains(err.Error(), pgerrcode.UniqueViolation) {
+		return &exceptions.LinkAlreadyExistsError{Value: originalURL}
+	}
+
 	if err != nil {
 		panic(err)
 	}
+
+	return nil
 }
 
 func (d *DBLinkStorage) GetLinksByUserID(userID uint32) []responses.ResponseShortOriginalLink {
@@ -65,7 +98,7 @@ func (d *DBLinkStorage) GetLinksByUserID(userID uint32) []responses.ResponseShor
 
 	defer d.DB.Close()
 
-	rows, err := conn.Query(context.Background(), "SELECT short_url, original_url FROM urls WHERE user_id = $1", userID)
+	rows, err := conn.Query(context.Background(), "SELECT short_uri, original_url FROM urls WHERE user_id = $1", userID)
 	if err != nil {
 		panic(err)
 	}

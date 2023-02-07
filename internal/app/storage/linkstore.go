@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -110,4 +111,8 @@ func (ls *LinkStore) GetLinksByUserID(userID uint32) []models.Link {
 	}
 
 	return userLinks
+}
+
+func (ls *LinkStore) GetShortURIByOriginalURL(originalURL string) (string, error) {
+	return originalURL, errors.New("in_memory_url_storage doesn't support this method")
 }

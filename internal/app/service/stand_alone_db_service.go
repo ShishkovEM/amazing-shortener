@@ -2,6 +2,8 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/exceptions"
 	"io"
 	"log"
 	"net/http"
@@ -72,7 +74,18 @@ func (sadbs *StandAloneDBService) createLinkHandler(w http.ResponseWriter, req *
 		UserID:   userID,
 	}
 
-	sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
+	err = sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
+
+	var iae *exceptions.LinkAlreadyExistsError
+
+	if errors.As(err, &iae) {
+		w.WriteHeader(http.StatusConflict)
+	}
+
+	if err != nil && !errors.As(err, &iae) {
+		http.Error(w, `{"error":"Something went wrong"}`, http.StatusInternalServerError)
+		return
+	}
 
 	log.Printf("created short id: %s\n", link.Short)
 
@@ -81,6 +94,8 @@ func (sadbs *StandAloneDBService) createLinkHandler(w http.ResponseWriter, req *
 	_, err = w.Write([]byte(sadbs.baseURL + link.Short))
 	if err != nil {
 		log.Printf("Error writing response body at createLinkHandler: %s\n", err)
+		http.Error(w, `{"error":"Something went wrong"}`, http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -101,6 +116,7 @@ func (sadbs *StandAloneDBService) getLinkHandler(w http.ResponseWriter, req *htt
 
 func (sadbs *StandAloneDBService) createLinkJSONHandler(w http.ResponseWriter, req *http.Request) {
 	log.Printf("handling link create via #createLinkJSONHandler at %s\n", req.URL.Path)
+	w.Header().Set("content-type", "application/json")
 
 	rawUserID := req.Context().Value(middleware.ContextKeyUserID)
 	var userID uint32
@@ -131,11 +147,20 @@ func (sadbs *StandAloneDBService) createLinkJSONHandler(w http.ResponseWriter, r
 		UserID:   userID,
 	}
 
-	sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
-	response := responses.ResponseShortLink{Result: link.Short}
+	shortenErr := sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
+	if err != nil {
+		return
+	}
 
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	var iae *exceptions.LinkAlreadyExistsError
+
+	if errors.As(shortenErr, &iae) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
+
+	response := responses.ResponseShortLink{Result: link.Short}
 
 	responseBytes, _ := json.Marshal(response)
 
@@ -193,6 +218,8 @@ func (sadbs *StandAloneDBService) ping() http.HandlerFunc {
 }
 
 func (sadbs *StandAloneDBService) createLinksBatchHandler(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("content-type", "application/json")
+
 	var request []requests.RequestLinksBatch
 	var result []responses.ResponseLinksBatch
 
@@ -209,13 +236,17 @@ func (sadbs *StandAloneDBService) createLinksBatchHandler(w http.ResponseWriter,
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, `{"error":"URLs in body are required"}`, http.StatusBadRequest)
 		return
 	}
 
 	if len(request) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
 		http.Error(w, `{"error":"URLs in body are required"}`, http.StatusBadRequest)
 		return
 	}
+
+	var shortenError error
 
 	for _, data := range request {
 
@@ -224,12 +255,19 @@ func (sadbs *StandAloneDBService) createLinksBatchHandler(w http.ResponseWriter,
 			Short:    shorten(),
 			UserID:   userID,
 		}
-		sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
+		shortenError = sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
+		if shortenError != nil {
+			return
+		}
 		result = append(result, responses.ResponseLinksBatch{CorrelationID: data.CorrelationID, ShortURL: sadbs.baseURL + link.Short})
 	}
 
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	var iae *exceptions.LinkAlreadyExistsError
+	if errors.As(shortenError, &iae) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 
 	responseBytes, _ := json.Marshal(result)
 
