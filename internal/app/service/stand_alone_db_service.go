@@ -86,7 +86,7 @@ func (sadbs *StandAloneDBService) createLinkHandler(w http.ResponseWriter, req *
 		return
 	}
 
-	if err != nil && !errors.As(err, &iae) {
+	if shortenErr != nil && !errors.As(shortenErr, &iae) {
 		http.Error(w, `{"error":"Something went wrong"}`, http.StatusInternalServerError)
 		return
 	}
@@ -159,7 +159,7 @@ func (sadbs *StandAloneDBService) createLinkJSONHandler(w http.ResponseWriter, r
 		existingRecord, _ := sadbs.store.GetShortURIByOriginalURL(strings.TrimPrefix(shortenErr.Error(), "record for already exists: "))
 		response := responses.ResponseShortLink{Result: existingRecord}
 		responseBytes, _ := json.Marshal(response)
-		_, err = w.Write(responseBytes)
+		_, _ = w.Write(responseBytes)
 		return
 	}
 
