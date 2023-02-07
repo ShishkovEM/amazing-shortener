@@ -19,6 +19,7 @@ type LinkRepository interface {
 
 type DBLinkRepository interface {
 	GetLink(shortID string) (string, error)
-	CreateLink(shortID string, originalURL string, userID uint32)
+	GetShortURIByOriginalURL(originalURL string) (string, error)
+	CreateLink(shortID string, originalURL string, userID uint32) error
 	GetLinksByUserID(userID uint32) []responses.ResponseShortOriginalLink
 }
