@@ -75,7 +75,7 @@ func (d *DBLinkStorage) CreateLink(shortID string, originalURL string, userID ui
 
 	defer d.DB.Close()
 
-	_, err = conn.Exec(context.Background(), "INSERT INTO urls (short_url, original_url, user_id, created_at) VALUES ($1,$2,$3,$4)", shortID, originalURL, userID, time.Now())
+	_, err = conn.Exec(context.Background(), "INSERT INTO urls (short_uri, original_url, user_id, created_at) VALUES ($1,$2,$3,$4)", shortID, originalURL, userID, time.Now())
 
 	if err != nil && strings.Contains(err.Error(), pgerrcode.UniqueViolation) {
 		return &exceptions.LinkAlreadyExistsError{Value: originalURL}

@@ -148,9 +148,6 @@ func (sadbs *StandAloneDBService) createLinkJSONHandler(w http.ResponseWriter, r
 	}
 
 	shortenErr := sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
-	if err != nil {
-		return
-	}
 
 	var iae *exceptions.LinkAlreadyExistsError
 
