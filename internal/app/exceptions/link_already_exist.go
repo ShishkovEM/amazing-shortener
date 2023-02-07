@@ -7,5 +7,5 @@ type LinkAlreadyExistsError struct {
 }
 
 func (lae *LinkAlreadyExistsError) Error() string {
-	return fmt.Sprintf("record for %s already exists", lae.Value)
+	return fmt.Sprintf("record for already exists: %s", lae.Value)
 }

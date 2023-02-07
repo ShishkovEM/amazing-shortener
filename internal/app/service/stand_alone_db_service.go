@@ -46,6 +46,7 @@ func (sadbs *StandAloneDBService) Routes() chi.Router {
 }
 
 func (sadbs *StandAloneDBService) createLinkHandler(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-type", "text/plain; charset=utf-8")
 	log.Printf("handling link create at %s\n", req.URL.Path)
 
 	rawUserID := req.Context().Value(middleware.ContextKeyUserID)
@@ -74,12 +75,15 @@ func (sadbs *StandAloneDBService) createLinkHandler(w http.ResponseWriter, req *
 		UserID:   userID,
 	}
 
-	err = sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
+	shortenErr := sadbs.store.CreateLink(link.Short, link.Original, link.UserID)
 
 	var iae *exceptions.LinkAlreadyExistsError
 
-	if errors.As(err, &iae) {
+	if errors.As(shortenErr, &iae) {
 		w.WriteHeader(http.StatusConflict)
+		response, _ := sadbs.store.GetShortURIByOriginalURL(strings.TrimPrefix(shortenErr.Error(), "record for already exists: "))
+		_, _ = w.Write([]byte(sadbs.baseURL + response))
+		return
 	}
 
 	if err != nil && !errors.As(err, &iae) {
@@ -89,7 +93,6 @@ func (sadbs *StandAloneDBService) createLinkHandler(w http.ResponseWriter, req *
 
 	log.Printf("created short id: %s\n", link.Short)
 
-	w.Header().Set("Content-type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(sadbs.baseURL + link.Short))
 	if err != nil {
