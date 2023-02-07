@@ -159,9 +159,14 @@ func (sadbs *StandAloneDBService) createLinkJSONHandler(w http.ResponseWriter, r
 
 	if errors.As(shortenErr, &iae) {
 		w.WriteHeader(http.StatusConflict)
-	} else {
-		w.WriteHeader(http.StatusCreated)
+		existingRecord, _ := sadbs.store.GetShortURIByOriginalURL(strings.TrimPrefix(shortenErr.Error(), "record for already exists: "))
+		response := responses.ResponseShortLink{Result: existingRecord}
+		responseBytes, _ := json.Marshal(response)
+		_, err = w.Write(responseBytes)
+		return
 	}
+
+	w.WriteHeader(http.StatusCreated)
 
 	response := responses.ResponseShortLink{Result: link.Short}
 
