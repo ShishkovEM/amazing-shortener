@@ -14,6 +14,18 @@ type LinkServiceConfig struct {
 	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
+type LinkServiceConfigForStandaloneDB struct {
+	Address     string
+	BaseURL     string
+	DatabaseDSN string
+}
+
+type LinkServiceConfigWithoutDB struct {
+	Address         string
+	BaseURL         string
+	FileStoragePath string
+}
+
 func (lsc *LinkServiceConfig) Parse() {
 	// Считываем конфигурацию с помощью флагов
 	flag.StringVar(&lsc.Address, "a", "localhost:8080", "server address")
@@ -43,5 +55,16 @@ func (lsc *LinkServiceConfig) Parse() {
 	if envCfg.DatabaseDSN != "" {
 		lsc.DatabaseDSN = envCfg.DatabaseDSN
 	}
+}
 
+func (lscfsadb *LinkServiceConfigForStandaloneDB) GetConfig(config LinkServiceConfig) {
+	lscfsadb.Address = config.Address
+	lscfsadb.BaseURL = config.BaseURL
+	lscfsadb.DatabaseDSN = config.DatabaseDSN
+}
+
+func (lscwdb *LinkServiceConfigWithoutDB) GetConfig(config LinkServiceConfig) {
+	lscwdb.Address = config.Address
+	lscwdb.BaseURL = config.BaseURL
+	lscwdb.FileStoragePath = config.FileStoragePath
 }

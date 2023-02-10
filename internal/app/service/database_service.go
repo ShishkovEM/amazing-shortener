@@ -1,9 +1,10 @@
 package service
 
 import (
-	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"net/http"
 	"sync"
+
+	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 
 	"github.com/go-chi/chi/v5"
 )
