@@ -93,7 +93,7 @@ func (d *DB) Migrate() error {
 	databaseName := databasePath.Path[1:]
 
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://internal/app/migrations",
+		"file://./migrations",
 		databaseName, driver,
 	)
 	if err != nil {
