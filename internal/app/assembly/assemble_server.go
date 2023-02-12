@@ -16,7 +16,7 @@ import (
 
 var (
 	standAloneDatabaseServiceConfigs config.LinkServiceConfigForStandaloneDB
-	serviceConfigsWithoutDB          config.LinkServiceConfigWithoutDB
+	serviceConfigsWithFileStorage    config.LinkServiceConfigWithFileStorage
 )
 
 func AssembleAndStartAppWithStandAloneDB(allConfigs config.LinkServiceConfig) {
@@ -27,7 +27,11 @@ func AssembleAndStartAppWithStandAloneDB(allConfigs config.LinkServiceConfig) {
 
 	// Создаём модель БД
 	dbModel := models.NewDB(standAloneDatabaseServiceConfigs.DatabaseDSN)
-	dbModel.CreateTables()
+	err := dbModel.Migrate()
+	if err != nil {
+		log.Printf("Error applying DB migrations")
+		return
+	}
 
 	// Создаём репозиторий
 	linkStorage := repository.NewDBURLStorage(dbModel)
@@ -42,25 +46,25 @@ func AssembleAndStartAppWithStandAloneDB(allConfigs config.LinkServiceConfig) {
 
 	// Запускаем http-сервер
 	log.Print("Starting http server...")
-	err := http.ListenAndServe(standAloneDatabaseServiceConfigs.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
+	err = http.ListenAndServe(standAloneDatabaseServiceConfigs.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
 	if err != nil {
 		log.Printf("Error starting services with stand-alone database: %s\n", err)
 		return
 	}
 }
 
-func AssembleAndStartAppWithoutDB(allConfigs config.LinkServiceConfig) {
+func AssembleAndStartAppWithFileStorage(allConfigs config.LinkServiceConfig) {
 	log.Print("Assembling services with file and in-memory storage...")
 
 	// Считываем конфигерацию для сервиса, работающего без БД
-	serviceConfigsWithoutDB.GetConfig(allConfigs)
+	serviceConfigsWithFileStorage.GetConfig(allConfigs)
 
 	// Объявляем in-memory хранилище для ссылок
 	var linkStorage *storage.LinkStore
 
 	// Создаём файловый репозиторий и хранилище ссылок
-	if serviceConfigsWithoutDB.FileStoragePath != "" {
-		linkFileRepository, err := repository.NewLinkFileRepository(serviceConfigsWithoutDB.FileStoragePath)
+	if serviceConfigsWithFileStorage.FileStoragePath != "" {
+		linkFileRepository, err := repository.NewLinkFileRepository(serviceConfigsWithFileStorage.FileStoragePath)
 		if err != nil {
 			log.Printf("Error creating linkRepository: %s\n", err)
 			return
@@ -71,7 +75,7 @@ func AssembleAndStartAppWithoutDB(allConfigs config.LinkServiceConfig) {
 	}
 
 	// Создаём сервис для обработки create- и read- операций
-	linkService := service.NewLinkService(linkStorage, serviceConfigsWithoutDB.BaseURL+"/")
+	linkService := service.NewLinkService(linkStorage, serviceConfigsWithFileStorage.BaseURL+"/")
 
 	// Запускаем маршрутизацию
 	router := chi.NewRouter()
@@ -82,7 +86,7 @@ func AssembleAndStartAppWithoutDB(allConfigs config.LinkServiceConfig) {
 
 	// Запускаем http-сервер
 	log.Print("Starting http server...")
-	err := http.ListenAndServe(serviceConfigsWithoutDB.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
+	err := http.ListenAndServe(serviceConfigsWithFileStorage.Address, mw.Conveyor(router, mw.UnzipRequest, mw.ZipResponse))
 	if err != nil {
 		log.Printf("Error starting services with file and in-memory storage: %s\n", err)
 		return

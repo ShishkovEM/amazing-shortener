@@ -18,6 +18,6 @@ func main() {
 	if lsc.DatabaseDSN != "" {
 		assembly.AssembleAndStartAppWithStandAloneDB(lsc)
 	} else {
-		assembly.AssembleAndStartAppWithoutDB(lsc)
+		assembly.AssembleAndStartAppWithFileStorage(lsc)
 	}
 }

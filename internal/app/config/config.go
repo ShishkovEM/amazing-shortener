@@ -20,7 +20,7 @@ type LinkServiceConfigForStandaloneDB struct {
 	DatabaseDSN string
 }
 
-type LinkServiceConfigWithoutDB struct {
+type LinkServiceConfigWithFileStorage struct {
 	Address         string
 	BaseURL         string
 	FileStoragePath string
@@ -63,7 +63,7 @@ func (lscfsadb *LinkServiceConfigForStandaloneDB) GetConfig(config LinkServiceCo
 	lscfsadb.DatabaseDSN = config.DatabaseDSN
 }
 
-func (lscwdb *LinkServiceConfigWithoutDB) GetConfig(config LinkServiceConfig) {
+func (lscwdb *LinkServiceConfigWithFileStorage) GetConfig(config LinkServiceConfig) {
 	lscwdb.Address = config.Address
 	lscwdb.BaseURL = config.BaseURL
 	lscwdb.FileStoragePath = config.FileStoragePath

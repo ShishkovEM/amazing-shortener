@@ -2,8 +2,13 @@ package models
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"net/url"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v4"
 )
 
@@ -63,4 +68,43 @@ func (d *DB) CreateTables() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (d *DB) Migrate() error {
+	db, err := sql.Open("postgres", d.dsn)
+	if err != nil {
+		panic(err)
+	}
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+		}
+	}(db)
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		panic(err)
+	}
+
+	databasePath, err := url.Parse(d.dsn)
+	if err != nil {
+		panic(err)
+	}
+	databaseName := databasePath.Path[1:]
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://internal/app/migrations",
+		databaseName, driver,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	errOnMigrate := m.Up()
+
+	if errOnMigrate != nil && !errors.Is(errOnMigrate, migrate.ErrNoChange) {
+		panic(err)
+	}
+
+	return nil
 }
