@@ -78,6 +78,7 @@ func (d *DB) Migrate() error {
 	defer func(db *sql.DB) {
 		err := db.Close()
 		if err != nil {
+			panic(err)
 		}
 	}(db)
 
