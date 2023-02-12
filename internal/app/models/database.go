@@ -93,12 +93,12 @@ func (d *DB) Migrate() error {
 	}
 	databaseName := databasePath.Path[1:]
 
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://./migrations",
+	m, mErr := migrate.NewWithDatabaseInstance(
+		"file://./schema",
 		databaseName, driver,
 	)
-	if err != nil {
-		panic(err)
+	if mErr != nil {
+		panic(mErr)
 	}
 
 	errOnMigrate := m.Up()
