@@ -103,7 +103,7 @@ func (d *DB) Migrate() error {
 	errOnMigrate := m.Up()
 
 	if errOnMigrate != nil && !errors.Is(errOnMigrate, migrate.ErrNoChange) {
-		panic(err)
+		panic(errOnMigrate)
 	}
 
 	return nil
