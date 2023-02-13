@@ -117,7 +117,7 @@ func (sadbs *StandAloneDBService) getLinkHandler(w http.ResponseWriter, req *htt
 		return
 	}
 
-	log.Printf("expanded original link: %s\n", link)
+	log.Printf("expanded original link: %s\n", link.OriginalURL)
 
 	w.Header().Set("Content-type", "text/plain; charset=utf-8")
 	w.Header().Set("Location", link.OriginalURL)
@@ -328,8 +328,6 @@ func (sadbs *StandAloneDBService) deleteUserURLsHandler(w http.ResponseWriter, r
 	}
 
 	w.WriteHeader(http.StatusAccepted)
-
-	return
 }
 
 func shorten() string {
