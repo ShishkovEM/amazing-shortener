@@ -22,4 +22,5 @@ type DBLinkRepository interface {
 	GetShortURIByOriginalURL(originalURL string) (string, error)
 	CreateLink(shortID string, originalURL string, userID uint32) error
 	GetLinksByUserID(userID uint32) []responses.ResponseShortOriginalLink
+	DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string) error
 }

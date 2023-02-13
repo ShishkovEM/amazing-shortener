@@ -8,6 +8,11 @@ type Link struct {
 	UserID   uint32 `json:"userID"`
 }
 
+type OriginalURL struct {
+	OriginalURL string
+	IsDeleted   bool
+}
+
 type User struct {
 	ID      uint32
 	Urls    []Link

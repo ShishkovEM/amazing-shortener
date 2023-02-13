@@ -23,23 +23,23 @@ func NewDBURLStorage(db *models.DB) *DBLinkStorage {
 	}
 }
 
-func (d *DBLinkStorage) GetLink(shortID string) (string, error) {
-	var originalURL string
+func (d *DBLinkStorage) GetLink(shortID string) (models.OriginalURL, error) {
+	var originalURL models.OriginalURL
 
 	conn, err := d.DB.GetConn(context.Background())
 	if err != nil {
-		return "", err
+		return originalURL, err
 	}
 
 	defer d.DB.Close()
 
-	err = conn.QueryRow(context.Background(), "SELECT original_url FROM urls WHERE short_uri = $1 LIMIT 1", shortID).Scan(&originalURL)
+	err = conn.QueryRow(context.Background(), "SELECT original_url, is_deleted FROM urls WHERE short_uri = $1 LIMIT 1", shortID).Scan(&originalURL.OriginalURL, &originalURL.IsDeleted)
 	if err != nil {
 		panic(err)
 	}
 
-	if originalURL == "" {
-		return "", errors.New("not found")
+	if originalURL.OriginalURL == "" {
+		return originalURL, errors.New("not found")
 	}
 
 	return originalURL, nil
@@ -115,4 +115,20 @@ func (d *DBLinkStorage) GetLinksByUserID(userID uint32) []responses.ResponseShor
 	}
 
 	return userURLs
+}
+
+func (d *DBLinkStorage) DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string) error {
+	conn, err := d.DB.GetConn(context.Background())
+	if err != nil {
+		return err
+	}
+
+	defer d.DB.Close()
+
+	_, err = conn.Exec(context.Background(), "UPDATE urls SET is_deleted = true WHERE short_uri = ANY($1) AND user_id = $2", shortURLs, userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

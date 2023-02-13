@@ -41,6 +41,7 @@ func (sadbs *StandAloneDBService) Routes() chi.Router {
 	r.Get("/api/urls", sadbs.getLinksByUserIDHandler)           // Получение ссылок, созданных полизователем
 	r.Get("/ping", sadbs.ping())                                // Пинг соединения с БД
 	r.Post("/api/shorten/batch", sadbs.createLinksBatchHandler) // Пакетное создание ссылок
+	r.Delete("/api/user/urls", sadbs.deleteUserURLsHandler)     // Удаление ссылок из базы
 
 	return r
 }
@@ -110,10 +111,16 @@ func (sadbs *StandAloneDBService) getLinkHandler(w http.ResponseWriter, req *htt
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+
+	if link.IsDeleted {
+		w.WriteHeader(http.StatusGone)
+		return
+	}
+
 	log.Printf("expanded original link: %s\n", link)
 
 	w.Header().Set("Content-type", "text/plain; charset=utf-8")
-	w.Header().Set("Location", link)
+	w.Header().Set("Location", link.OriginalURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
@@ -282,6 +289,47 @@ func (sadbs *StandAloneDBService) createLinksBatchHandler(w http.ResponseWriter,
 	if err != nil {
 		return
 	}
+}
+
+func (sadbs *StandAloneDBService) deleteUserURLsHandler(w http.ResponseWriter, req *http.Request) {
+	log.Printf("handling link delete via #deleteUserURLsHandler at %s\n", req.URL.Path)
+	w.Header().Set("content-type", "application/json")
+
+	rawUserID := req.Context().Value(middleware.ContextKeyUserID)
+	var userID uint32
+
+	switch uidType := rawUserID.(type) {
+	case uint32:
+		userID = uidType
+	}
+
+	var request []string
+
+	b, _ := io.ReadAll(req.Body)
+	err := json.Unmarshal(b, &request)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, `{"error":"Invalid body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if len(request) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, `{"error":"Body must be not empty array"}`, http.StatusBadRequest)
+		return
+	}
+
+	err = sadbs.store.DeleteUserRecordsByShortURLs(userID, request)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, `{"error":"Failed to delete user records by short url"}`, http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+
+	return
 }
 
 func shorten() string {
