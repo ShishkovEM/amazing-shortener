@@ -89,7 +89,7 @@ func (ls *LinkService) getLinkHandler(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	if link.IsDeleted == true {
+	if link.IsDeleted {
 		w.WriteHeader(http.StatusGone)
 		return
 	}
