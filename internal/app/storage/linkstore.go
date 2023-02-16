@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -57,10 +56,11 @@ func (ls *LinkStore) CreateLink(longURL string, userID uint32) (string, error) {
 	defer ls.Unlock()
 
 	link := models.Link{
-		ID:       ls.nextID,
-		Original: longURL,
-		Short:    shorten(),
-		UserID:   userID,
+		ID:        ls.nextID,
+		Original:  longURL,
+		Short:     shorten(),
+		UserID:    userID,
+		IsDeleted: false,
 	}
 	ls.Links[link.Short] = link
 	ls.nextID++
@@ -98,10 +98,16 @@ func (ls *LinkStore) GetLink(short string) (models.Link, error) {
 }
 
 func (ls *LinkStore) GetSize() int {
+	ls.Lock()
+	defer ls.Unlock()
+
 	return len(ls.Links)
 }
 
 func (ls *LinkStore) GetLinksByUserID(userID uint32) []models.Link {
+	ls.Lock()
+	defer ls.Unlock()
+
 	var userLinks []models.Link
 
 	for _, value := range ls.Links {
@@ -113,6 +119,18 @@ func (ls *LinkStore) GetLinksByUserID(userID uint32) []models.Link {
 	return userLinks
 }
 
-func (ls *LinkStore) GetShortURIByOriginalURL(originalURL string) (string, error) {
-	return originalURL, errors.New("in_memory_url_storage doesn't support this method")
+func (ls *LinkStore) DeleteUserRecordsByShortURLs(userID uint32, shortIDs []string) error {
+	ls.Lock()
+	defer ls.Unlock()
+
+	for _, shortID := range shortIDs {
+		if entry, ok := ls.Links[shortID]; ok {
+			if entry.UserID == userID {
+				entry.IsDeleted = true
+				ls.Links[shortID] = entry
+			}
+		}
+	}
+
+	return nil
 }

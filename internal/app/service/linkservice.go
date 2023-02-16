@@ -88,6 +88,12 @@ func (ls *LinkService) getLinkHandler(w http.ResponseWriter, req *http.Request) 
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+
+	if link.IsDeleted == true {
+		w.WriteHeader(http.StatusGone)
+		return
+	}
+
 	log.Printf("expanded original link: %s\n", link.Original)
 
 	w.Header().Set("Content-type", "text/plain; charset=utf-8")

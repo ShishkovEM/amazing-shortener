@@ -18,6 +18,7 @@ func (ls *LinkService) RestRoutes() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/shorten", ls.createLinkJSONHandler)         // Создание новой сокращённой ссылки
 	r.Post("/shorten/batch", ls.createLinksBatchHandler) // Пакетное создание ссылок
+	r.Delete("/user/urls", ls.deleteUserURLsHandler)     // Удаление ссылок
 	return r
 }
 
@@ -130,4 +131,49 @@ func (ls *LinkService) createLinksBatchHandler(w http.ResponseWriter, req *http.
 	if err != nil {
 		return
 	}
+}
+
+func (ls *LinkService) deleteUserURLsHandler(w http.ResponseWriter, req *http.Request) {
+	log.Printf("handling link delete via #deleteUserURLsHandler at %s\n", req.URL.Path)
+	w.Header().Set("content-type", "application/json")
+
+	rawUserID := req.Context().Value(middleware.ContextKeyUserID)
+	var userID uint32
+
+	switch uidType := rawUserID.(type) {
+	case uint32:
+		userID = uidType
+	}
+
+	var request []string
+
+	b, _ := io.ReadAll(req.Body)
+	err := json.Unmarshal(b, &request)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, `{"error":"Invalid body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if len(request) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, `{"error":"Body must be not empty array"}`, http.StatusBadRequest)
+		return
+	}
+
+	go func() {
+		err = ls.store.DeleteUserRecordsByShortURLs(userID, request)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, `{"error":"Failed to delete user records by short url"}`, http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
 }
