@@ -3,7 +3,10 @@ package repository
 import (
 	"context"
 	"errors"
+	"log"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ShishkovEM/amazing-shortener/internal/app/exceptions"
@@ -118,17 +121,48 @@ func (d *DBLinkStorage) GetLinksByUserID(userID uint32) []responses.ResponseShor
 }
 
 func (d *DBLinkStorage) DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string) error {
-	conn, err := d.DB.GetConn(context.Background())
-	if err != nil {
-		return err
+	// Create a channel to pass shortURLs to the worker pool.
+	urlsToDelete := make(chan string, len(shortURLs))
+	for _, shortURL := range shortURLs {
+		urlsToDelete <- shortURL
+	}
+	close(urlsToDelete)
+
+	// Create a WaitGroup to wait for all workers to finish.
+	var wg sync.WaitGroup
+
+	// Start worker pool with 5 workers.
+	numWorkers := runtime.NumCPU()
+	wg.Add(numWorkers)
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			defer wg.Done()
+
+			for shortURL := range urlsToDelete {
+				conn, err := d.DB.GetConn(context.Background())
+				if err != nil {
+					// Log the error and continue processing the next URL.
+					log.Printf("error getting DB connection: %v", err)
+					continue
+				}
+
+				_, err = conn.Exec(context.Background(), "UPDATE urls SET is_deleted = true WHERE short_uri = $1 AND user_id = $2", shortURL, userID)
+				if err != nil {
+					// Log the error and continue processing the next URL.
+					log.Printf("error updating URL: %v", err)
+				}
+
+				err = conn.Close(context.Background())
+				if err != nil {
+					// Log the error and continue processing the next URL.
+					log.Printf("error closing DB connection: %v", err)
+				}
+			}
+		}()
 	}
 
-	defer d.DB.Close()
-
-	_, err = conn.Exec(context.Background(), "UPDATE urls SET is_deleted = true WHERE short_uri = ANY($1) AND user_id = $2", shortURLs, userID)
-	if err != nil {
-		return err
-	}
+	// Wait for all workers to finish.
+	wg.Wait()
 
 	return nil
 }

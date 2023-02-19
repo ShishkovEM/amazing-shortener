@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -123,14 +124,34 @@ func (ls *LinkStore) DeleteUserRecordsByShortURLs(userID uint32, shortIDs []stri
 	ls.Lock()
 	defer ls.Unlock()
 
+	deleteChan := make(chan string, len(shortIDs))
+	defer close(deleteChan)
+
 	for _, shortID := range shortIDs {
 		if entry, ok := ls.Links[shortID]; ok {
 			if entry.UserID == userID {
-				entry.IsDeleted = true
-				ls.Links[shortID] = entry
+				deleteChan <- shortID
 			}
 		}
 	}
+
+	numWorkers := runtime.NumCPU()
+	var wg sync.WaitGroup
+	wg.Add(numWorkers)
+
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			defer wg.Done()
+
+			for shortID := range deleteChan {
+				entry := ls.Links[shortID]
+				entry.IsDeleted = true
+				ls.Links[shortID] = entry
+			}
+		}()
+	}
+
+	wg.Wait()
 
 	return nil
 }

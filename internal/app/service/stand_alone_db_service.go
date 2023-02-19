@@ -320,12 +320,7 @@ func (sadbs *StandAloneDBService) deleteUserURLsHandler(w http.ResponseWriter, r
 		return
 	}
 
-	go func() {
-		err = sadbs.store.DeleteUserRecordsByShortURLs(userID, request)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
+	err = sadbs.store.DeleteUserRecordsByShortURLs(userID, request)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
