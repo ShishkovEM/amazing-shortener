@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
 	"time"
 
@@ -124,33 +123,29 @@ func (ls *LinkStore) DeleteUserRecordsByShortURLs(userID uint32, shortIDs []stri
 	ls.Lock()
 	defer ls.Unlock()
 
-	deleteChan := make(chan string, len(shortIDs))
-	defer close(deleteChan)
+	// создаем канал для передачи id удаляемых ссылок в воркер
+	idsToDelete := make(chan string, len(shortIDs))
+	for _, id := range shortIDs {
+		idsToDelete <- id
+	}
+	close(idsToDelete)
 
-	for _, shortID := range shortIDs {
-		if entry, ok := ls.Links[shortID]; ok {
-			if entry.UserID == userID {
-				deleteChan <- shortID
+	// запускаем воркер для пометки удаляемых ссылок
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for id := range idsToDelete {
+			if entry, ok := ls.Links[id]; ok {
+				if entry.UserID == userID {
+					entry.IsDeleted = true
+					ls.Links[id] = entry
+				}
 			}
 		}
-	}
+	}()
 
-	numWorkers := runtime.NumCPU()
-	var wg sync.WaitGroup
-	wg.Add(numWorkers)
-
-	for i := 0; i < numWorkers; i++ {
-		go func() {
-			defer wg.Done()
-
-			for shortID := range deleteChan {
-				entry := ls.Links[shortID]
-				entry.IsDeleted = true
-				ls.Links[shortID] = entry
-			}
-		}()
-	}
-
+	// ждем завершения работы воркера
 	wg.Wait()
 
 	return nil
