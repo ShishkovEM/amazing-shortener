@@ -25,6 +25,10 @@ type StandAloneDBService struct {
 	store   *repository.DBLinkStorage
 }
 
+func (sadbs *StandAloneDBService) GetStore() *repository.DBLinkStorage {
+	return sadbs.store
+}
+
 func NewStandAloneDBService(store *repository.DBLinkStorage, baseURL string) *StandAloneDBService {
 	sadbs := &StandAloneDBService{
 		store:   store,
@@ -320,13 +324,7 @@ func (sadbs *StandAloneDBService) deleteUserURLsHandler(w http.ResponseWriter, r
 		return
 	}
 
-	err = sadbs.store.DeleteUserRecordsByShortURLs(userID, request)
-
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		http.Error(w, `{"error":"Failed to delete user records by short url"}`, http.StatusBadRequest)
-		return
-	}
+	sadbs.store.DeleteUserRecordsByShortURLs(userID, request)
 
 	w.WriteHeader(http.StatusAccepted)
 }

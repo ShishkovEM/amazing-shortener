@@ -1,15 +1,16 @@
 package assembly
 
 import (
-	"log"
-	"net/http"
-
 	"github.com/ShishkovEM/amazing-shortener/internal/app/config"
 	mw "github.com/ShishkovEM/amazing-shortener/internal/app/middleware"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/repository"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/service"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/workerpool"
+	"log"
+	"net/http"
+	"runtime"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -33,8 +34,13 @@ func AssembleAndStartAppWithStandAloneDB(allConfigs config.LinkServiceConfig) {
 		return
 	}
 
+	// Создаём воркер-пул для обработки DELETE-запросов
+	var allDeletionTasks []*workerpool.DeletionTask
+	workerDeletionPool := workerpool.NewDeletionPool(allDeletionTasks, runtime.NumCPU())
+	go workerDeletionPool.RunBackground(dbModel)
+
 	// Создаём репозиторий
-	linkStorage := repository.NewDBURLStorage(dbModel)
+	linkStorage := repository.NewDBURLStorage(dbModel, workerDeletionPool)
 
 	// Инициализируем сервис
 	linkService := service.NewStandAloneDBService(linkStorage, standAloneDatabaseServiceConfigs.BaseURL+"/")

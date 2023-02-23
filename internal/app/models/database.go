@@ -21,6 +21,10 @@ func NewDB(dsn string) *DB {
 	return &DB{dsn: dsn}
 }
 
+func (d *DB) GetConnection() *pgx.Conn {
+	return d.conn
+}
+
 func (d *DB) GetConn(ctx context.Context) (*pgx.Conn, error) {
 	if d.dsn == "" {
 		return nil, errors.New("empty database dsn")

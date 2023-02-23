@@ -3,8 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"log"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -12,17 +10,25 @@ import (
 	"github.com/ShishkovEM/amazing-shortener/internal/app/exceptions"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/responses"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/workerpool"
 
 	"github.com/jackc/pgerrcode"
 )
 
 type DBLinkStorage struct {
-	DB *models.DB
+	wg                 sync.WaitGroup
+	DB                 *models.DB
+	workerDeletionPool *workerpool.DeletionPool
 }
 
-func NewDBURLStorage(db *models.DB) *DBLinkStorage {
+func (d *DBLinkStorage) GetDB() *models.DB {
+	return d.DB
+}
+
+func NewDBURLStorage(db *models.DB, workerPool *workerpool.DeletionPool) *DBLinkStorage {
 	return &DBLinkStorage{
-		DB: db,
+		DB:                 db,
+		workerDeletionPool: workerPool,
 	}
 }
 
@@ -120,49 +126,9 @@ func (d *DBLinkStorage) GetLinksByUserID(userID uint32) []responses.ResponseShor
 	return userURLs
 }
 
-func (d *DBLinkStorage) DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string) error {
-	// Create a channel to pass shortURLs to the worker pool.
-	urlsToDelete := make(chan string, len(shortURLs))
+func (d *DBLinkStorage) DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string) {
 	for _, shortURL := range shortURLs {
-		urlsToDelete <- shortURL
+		newTask := workerpool.NewDeletionTask(userID, shortURL)
+		d.workerDeletionPool.AddTask(newTask)
 	}
-	close(urlsToDelete)
-
-	// Create a WaitGroup to wait for all workers to finish.
-	var wg sync.WaitGroup
-
-	// Start worker pool with 5 workers.
-	numWorkers := runtime.NumCPU()
-	wg.Add(numWorkers)
-	for i := 0; i < numWorkers; i++ {
-		go func() {
-			defer wg.Done()
-
-			for shortURL := range urlsToDelete {
-				conn, err := d.DB.GetConn(context.Background())
-				if err != nil {
-					// Log the error and continue processing the next URL.
-					log.Printf("error getting DB connection: %v", err)
-					continue
-				}
-
-				_, err = conn.Exec(context.Background(), "UPDATE urls SET is_deleted = true WHERE short_uri = $1 AND user_id = $2", shortURL, userID)
-				if err != nil {
-					// Log the error and continue processing the next URL.
-					log.Printf("error updating URL: %v", err)
-				}
-
-				err = conn.Close(context.Background())
-				if err != nil {
-					// Log the error and continue processing the next URL.
-					log.Printf("error closing DB connection: %v", err)
-				}
-			}
-		}()
-	}
-
-	// Wait for all workers to finish.
-	wg.Wait()
-
-	return nil
 }
