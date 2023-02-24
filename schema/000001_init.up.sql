@@ -3,6 +3,5 @@ CREATE TABLE IF NOT EXISTS urls (
     original_url TEXT COLLATE pg_catalog.default NOT NULL,
     user_id BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE,
-    is_deleted BOOLEAN DEFAULT FALSE,
     CONSTRAINT urls_pkey PRIMARY KEY (original_url)
 );
