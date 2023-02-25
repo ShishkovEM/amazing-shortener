@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/ShishkovEM/amazing-shortener/internal/app/interfaces"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 
 	"github.com/jackc/pgx/v4"
@@ -16,8 +17,8 @@ type DeletionWorker struct {
 	connection *pgx.Conn
 }
 
-func NewDeletionWorker(channel chan *models.DeletionTask, ID int, DB *models.DB) *DeletionWorker {
-	conn, err := DB.GetConn(context.Background())
+func NewDeletionWorker(channel chan *models.DeletionTask, ID int, target interfaces.ProcessorTarget) *DeletionWorker {
+	conn, err := target.GetConn(context.Background())
 	if err != nil {
 		log.Fatal("Error establishing connection to database")
 	}

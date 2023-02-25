@@ -1,8 +1,10 @@
 package interfaces
 
 import (
+	"context"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/responses"
+	"github.com/jackc/pgx/v4"
 )
 
 type InMemoryLinkStorage interface {
@@ -27,4 +29,8 @@ type DBLinkRepository interface {
 
 type DeletionProcessor interface {
 	AddTask(task *models.DeletionTask)
+}
+
+type ProcessorTarget interface {
+	GetConn(ctx context.Context) (*pgx.Conn, error)
 }
