@@ -9,6 +9,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgtype/pgxtype"
 	"github.com/jackc/pgx/v4"
 )
 
@@ -19,10 +20,6 @@ type DB struct {
 
 func NewDB(dsn string) *DB {
 	return &DB{dsn: dsn}
-}
-
-func (d *DB) GetConnection() *pgx.Conn {
-	return d.conn
 }
 
 func (d *DB) GetConn(ctx context.Context) (*pgx.Conn, error) {
@@ -41,15 +38,32 @@ func (d *DB) GetConn(ctx context.Context) (*pgx.Conn, error) {
 	return d.conn, nil
 }
 
-func (d DB) Close() {
+func (d *DB) GetQuerier(ctx context.Context) (pgxtype.Querier, error) {
 	if d.conn == nil {
-		return
+		return nil, errors.New("empty connection")
+	}
+
+	conn, err := pgx.Connect(ctx, d.dsn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	d.conn = conn
+
+	return d.conn, nil
+}
+
+func (d DB) Close() error {
+	if d.conn == nil {
+		return nil
 	}
 
 	err := d.conn.Close(context.Background())
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func (d *DB) Migrate() error {
