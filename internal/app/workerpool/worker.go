@@ -4,19 +4,19 @@ import (
 	"context"
 	"log"
 
-	"github.com/jackc/pgx/v4"
-
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
+
+	"github.com/jackc/pgx/v4"
 )
 
 type DeletionWorker struct {
 	ID         int
-	taskChan   chan *DeletionTask
+	taskChan   chan *models.DeletionTask
 	quit       chan bool
 	connection *pgx.Conn
 }
 
-func NewDeletionWorker(channel chan *DeletionTask, ID int, DB *models.DB) *DeletionWorker {
+func NewDeletionWorker(channel chan *models.DeletionTask, ID int, DB *models.DB) *DeletionWorker {
 	conn, err := DB.GetConn(context.Background())
 	if err != nil {
 		log.Fatal("Error establishing connection to database")
@@ -53,10 +53,10 @@ func (dw *DeletionWorker) Stop() {
 	}()
 }
 
-func (dw *DeletionWorker) processDeletion(dt *DeletionTask) {
-	log.Printf("Worker %d processes deletion of url %s\n", dw.ID, dt.urlToDelete)
+func (dw *DeletionWorker) processDeletion(dt *models.DeletionTask) {
+	log.Printf("Worker %d processes deletion of url %s\n", dw.ID, dt.URLToDelete)
 
-	_, err := dw.connection.Exec(context.Background(), "UPDATE urls SET is_deleted = true WHERE short_uri = $1 AND user_id = $2", dt.urlToDelete, dt.userID)
+	_, err := dw.connection.Exec(context.Background(), "UPDATE urls SET is_deleted = true WHERE short_uri = $1 AND user_id = $2", dt.URLToDelete, dt.UserID)
 	if err != nil {
 		log.Printf("error updating URL: %v", err)
 	}

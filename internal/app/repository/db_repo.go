@@ -8,27 +8,26 @@ import (
 	"time"
 
 	"github.com/ShishkovEM/amazing-shortener/internal/app/exceptions"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/interfaces"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/responses"
-	"github.com/ShishkovEM/amazing-shortener/internal/app/workerpool"
-
 	"github.com/jackc/pgerrcode"
 )
 
 type DBLinkStorage struct {
-	wg                 sync.WaitGroup
-	DB                 *models.DB
-	workerDeletionPool *workerpool.DeletionPool
+	wg                sync.WaitGroup
+	DB                *models.DB
+	deletionProcessor interfaces.DeletionProcessor
 }
 
 func (d *DBLinkStorage) GetDB() *models.DB {
 	return d.DB
 }
 
-func NewDBURLStorage(db *models.DB, workerPool *workerpool.DeletionPool) *DBLinkStorage {
+func NewDBURLStorage(db *models.DB, deletionProcessor interfaces.DeletionProcessor) *DBLinkStorage {
 	return &DBLinkStorage{
-		DB:                 db,
-		workerDeletionPool: workerPool,
+		DB:                db,
+		deletionProcessor: deletionProcessor,
 	}
 }
 
@@ -128,7 +127,7 @@ func (d *DBLinkStorage) GetLinksByUserID(userID uint32) []responses.ResponseShor
 
 func (d *DBLinkStorage) DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string) {
 	for _, shortURL := range shortURLs {
-		newTask := workerpool.NewDeletionTask(userID, shortURL)
-		d.workerDeletionPool.AddTask(newTask)
+		newTask := models.NewDeletionTask(userID, shortURL)
+		d.deletionProcessor.AddTask(newTask)
 	}
 }

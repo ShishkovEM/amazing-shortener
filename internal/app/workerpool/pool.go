@@ -9,24 +9,24 @@ import (
 )
 
 type DeletionPool struct {
-	Tasks   []*DeletionTask
+	Tasks   []*models.DeletionTask
 	Workers []*DeletionWorker
 
 	concurrency   int
-	collector     chan *DeletionTask
+	collector     chan *models.DeletionTask
 	runBackground chan bool
 	wg            sync.WaitGroup
 }
 
-func NewDeletionPool(tasks []*DeletionTask, concurrency int) *DeletionPool {
+func NewDeletionPool(tasks []*models.DeletionTask, concurrency int) *DeletionPool {
 	return &DeletionPool{
 		Tasks:       tasks,
 		concurrency: concurrency,
-		collector:   make(chan *DeletionTask, 1000),
+		collector:   make(chan *models.DeletionTask, 1000),
 	}
 }
 
-func (dp *DeletionPool) AddTask(task *DeletionTask) {
+func (dp *DeletionPool) AddTask(task *models.DeletionTask) {
 	dp.collector <- task
 }
 

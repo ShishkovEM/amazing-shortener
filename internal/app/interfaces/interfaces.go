@@ -18,9 +18,13 @@ type LinkRepository interface {
 }
 
 type DBLinkRepository interface {
-	GetLink(shortID string) (string, error)
+	GetLink(shortID string) (models.OriginalURL, error)
 	GetShortURIByOriginalURL(originalURL string) (string, error)
 	CreateLink(shortID string, originalURL string, userID uint32) error
 	GetLinksByUserID(userID uint32) []responses.ResponseShortOriginalLink
-	DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string) error
+	DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string)
+}
+
+type DeletionProcessor interface {
+	AddTask(task *models.DeletionTask)
 }
