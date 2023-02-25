@@ -97,6 +97,19 @@ func (ls *LinkStore) GetLink(short string) (models.Link, error) {
 	}
 }
 
+func (ls *LinkStore) GetAll() []*models.Link {
+	ls.Lock()
+	defer ls.Unlock()
+
+	var allLinks []*models.Link
+
+	for _, link := range ls.Links {
+		allLinks = append(allLinks, &link)
+	}
+
+	return allLinks
+}
+
 func (ls *LinkStore) GetSize() int {
 	ls.Lock()
 	defer ls.Unlock()
@@ -143,10 +156,17 @@ func (ls *LinkStore) DeleteUserRecordsByShortURLs(userID uint32, shortIDs []stri
 				}
 			}
 		}
+		if ls.Repository != nil {
+			Refresh(ls, ls.Repository)
+		}
 	}()
 
 	// ждем завершения работы воркера
 	wg.Wait()
 
 	return nil
+}
+
+func Refresh(inMemory interfaces.InMemoryLinkStorage, fileRepository interfaces.LinkRepository) {
+	fileRepository.Refresh(inMemory)
 }

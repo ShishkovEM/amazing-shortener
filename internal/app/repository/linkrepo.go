@@ -218,3 +218,28 @@ func WriteLinkToRepository(repo interfaces.LinkRepository, link *models.Link) er
 func InitLinkStoreFromRepository(repo interfaces.LinkRepository, store interfaces.InMemoryLinkStorage) {
 	repo.InitLinkStoreFromRepository(store)
 }
+
+func (lfr *LinkFileRepository) Refresh(inMemory interfaces.InMemoryLinkStorage) {
+	if lfr.fileName != "" {
+		file, err := os.OpenFile(lfr.fileName, os.O_RDONLY|os.O_CREATE|os.O_TRUNC, 0777)
+		if err != nil {
+			log.Print("Error opening file while refreshing")
+			return
+		}
+		err = file.Close()
+		if err != nil {
+			log.Print("Error closing file while refreshing")
+			return
+		}
+
+		allLinks := inMemory.GetAll()
+		for _, link := range allLinks {
+			err := WriteLinkToRepository(lfr, link)
+			if err != nil {
+				log.Print("Error refreshing file repository")
+				return
+			}
+		}
+	}
+
+}

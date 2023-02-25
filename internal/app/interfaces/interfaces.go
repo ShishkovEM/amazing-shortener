@@ -11,12 +11,14 @@ type InMemoryLinkStorage interface {
 	AddLinkToMemStorage(link models.Link)
 	CreateLink(longURL string, userID uint32) (string, error)
 	GetLink(short string) (models.Link, error)
+	GetAll() []*models.Link
 	GetSize() int
 }
 
 type LinkRepository interface {
 	InitLinkStoreFromRepository(store InMemoryLinkStorage)
 	WriteLinkToRepository(link *models.Link) error
+	Refresh(inMemory InMemoryLinkStorage)
 }
 
 type DBLinkRepository interface {
