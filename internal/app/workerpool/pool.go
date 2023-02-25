@@ -5,32 +5,33 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ShishkovEM/amazing-shortener/internal/app/interfaces"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 )
 
 type DeletionPool struct {
-	Tasks   []*DeletionTask
+	Tasks   []*models.DeletionTask
 	Workers []*DeletionWorker
 
 	concurrency   int
-	collector     chan *DeletionTask
+	collector     chan *models.DeletionTask
 	runBackground chan bool
 	wg            sync.WaitGroup
 }
 
-func NewDeletionPool(tasks []*DeletionTask, concurrency int) *DeletionPool {
+func NewDeletionPool(tasks []*models.DeletionTask, concurrency int) *DeletionPool {
 	return &DeletionPool{
 		Tasks:       tasks,
 		concurrency: concurrency,
-		collector:   make(chan *DeletionTask, 1000),
+		collector:   make(chan *models.DeletionTask, 1000),
 	}
 }
 
-func (dp *DeletionPool) AddTask(task *DeletionTask) {
+func (dp *DeletionPool) AddTask(task *models.DeletionTask) {
 	dp.collector <- task
 }
 
-func (dp *DeletionPool) RunBackground(DB *models.DB) {
+func (dp *DeletionPool) RunBackground(querier interfaces.Queriable) {
 	go func() {
 		for {
 			log.Print("⌛ Waiting for tasks to come in ...\n")
@@ -39,7 +40,7 @@ func (dp *DeletionPool) RunBackground(DB *models.DB) {
 	}()
 
 	for i := 1; i <= dp.concurrency; i++ {
-		worker := NewDeletionWorker(dp.collector, i, DB)
+		worker := NewDeletionWorker(dp.collector, i, querier)
 		dp.Workers = append(dp.Workers, worker)
 		go worker.StartBackground()
 	}

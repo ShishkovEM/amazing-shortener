@@ -36,12 +36,12 @@ func AssembleAndStartAppWithStandAloneDB(allConfigs config.LinkServiceConfig) {
 	}
 
 	// Создаём воркер-пул для обработки DELETE-запросов
-	var allDeletionTasks []*workerpool.DeletionTask
-	workerDeletionPool := workerpool.NewDeletionPool(allDeletionTasks, runtime.NumCPU())
-	go workerDeletionPool.RunBackground(dbModel)
+	var allDeletionTasks []*models.DeletionTask
+	asyncDeletionProcessor := workerpool.NewDeletionPool(allDeletionTasks, runtime.NumCPU())
+	go asyncDeletionProcessor.RunBackground(dbModel)
 
 	// Создаём репозиторий
-	linkStorage := repository.NewDBURLStorage(dbModel, workerDeletionPool)
+	linkStorage := repository.NewDBURLStorage(dbModel, asyncDeletionProcessor)
 
 	// Инициализируем сервис
 	linkService := service.NewStandAloneDBService(linkStorage, standAloneDatabaseServiceConfigs.BaseURL+"/")

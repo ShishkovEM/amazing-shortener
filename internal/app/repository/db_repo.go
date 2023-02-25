@@ -8,27 +8,27 @@ import (
 	"time"
 
 	"github.com/ShishkovEM/amazing-shortener/internal/app/exceptions"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/interfaces"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/responses"
-	"github.com/ShishkovEM/amazing-shortener/internal/app/workerpool"
 
 	"github.com/jackc/pgerrcode"
 )
 
 type DBLinkStorage struct {
-	wg                 sync.WaitGroup
-	DB                 *models.DB
-	workerDeletionPool *workerpool.DeletionPool
+	wg                sync.WaitGroup
+	DB                *models.DB
+	deletionProcessor interfaces.DeletionProcessor
 }
 
 func (d *DBLinkStorage) GetDB() *models.DB {
 	return d.DB
 }
 
-func NewDBURLStorage(db *models.DB, workerPool *workerpool.DeletionPool) *DBLinkStorage {
+func NewDBURLStorage(db *models.DB, deletionProcessor interfaces.DeletionProcessor) *DBLinkStorage {
 	return &DBLinkStorage{
-		DB:                 db,
-		workerDeletionPool: workerPool,
+		DB:                db,
+		deletionProcessor: deletionProcessor,
 	}
 }
 
@@ -40,7 +40,9 @@ func (d *DBLinkStorage) GetLink(shortID string) (models.OriginalURL, error) {
 		return originalURL, err
 	}
 
-	defer d.DB.Close()
+	defer func(DB *models.DB) {
+		_ = DB.Close()
+	}(d.DB)
 
 	err = conn.QueryRow(context.Background(), "SELECT original_url, is_deleted FROM urls WHERE short_uri = $1 LIMIT 1", shortID).Scan(&originalURL.OriginalURL, &originalURL.IsDeleted)
 	if err != nil {
@@ -62,7 +64,9 @@ func (d *DBLinkStorage) GetShortURIByOriginalURL(originalURL string) (string, er
 		return "", err
 	}
 
-	defer d.DB.Close()
+	defer func(DB *models.DB) {
+		_ = DB.Close()
+	}(d.DB)
 
 	err = conn.QueryRow(context.Background(), "SELECT short_uri FROM urls WHERE original_url = $1 LIMIT 1", originalURL).Scan(&shortURI)
 	if err != nil {
@@ -82,7 +86,9 @@ func (d *DBLinkStorage) CreateLink(shortID string, originalURL string, userID ui
 		panic(err)
 	}
 
-	defer d.DB.Close()
+	defer func(DB *models.DB) {
+		_ = DB.Close()
+	}(d.DB)
 
 	_, err = conn.Exec(context.Background(), "INSERT INTO urls (short_uri, original_url, user_id, created_at) VALUES ($1,$2,$3,$4)", shortID, originalURL, userID, time.Now())
 
@@ -105,7 +111,9 @@ func (d *DBLinkStorage) GetLinksByUserID(userID uint32) []responses.ResponseShor
 		return userURLs
 	}
 
-	defer d.DB.Close()
+	defer func(DB *models.DB) {
+		_ = DB.Close()
+	}(d.DB)
 
 	rows, err := conn.Query(context.Background(), "SELECT short_uri, original_url FROM urls WHERE user_id = $1", userID)
 	if err != nil {
@@ -128,7 +136,7 @@ func (d *DBLinkStorage) GetLinksByUserID(userID uint32) []responses.ResponseShor
 
 func (d *DBLinkStorage) DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string) {
 	for _, shortURL := range shortURLs {
-		newTask := workerpool.NewDeletionTask(userID, shortURL)
-		d.workerDeletionPool.AddTask(newTask)
+		newTask := models.NewDeletionTask(userID, shortURL)
+		d.deletionProcessor.AddTask(newTask)
 	}
 }
