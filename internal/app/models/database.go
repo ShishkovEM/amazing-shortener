@@ -38,10 +38,18 @@ func (d *DB) GetConn(ctx context.Context) (*pgx.Conn, error) {
 	return d.conn, nil
 }
 
-func (d *DB) GetQuerier() (pgxtype.Querier, error) {
+func (d *DB) GetQuerier(ctx context.Context) (pgxtype.Querier, error) {
 	if d.conn == nil {
 		return nil, errors.New("empty connection")
 	}
+
+	conn, err := pgx.Connect(ctx, d.dsn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	d.conn = conn
 
 	return d.conn, nil
 }

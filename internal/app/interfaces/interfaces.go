@@ -1,8 +1,10 @@
 package interfaces
 
 import (
+	"context"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/responses"
+	"github.com/jackc/pgx/v4"
 
 	"github.com/jackc/pgtype/pgxtype"
 )
@@ -28,7 +30,8 @@ type DBLinkRepository interface {
 }
 
 type Queriable interface {
-	GetQuerier() (pgxtype.Querier, error)
+	GetConn(ctx context.Context) (*pgx.Conn, error)
+	GetQuerier(ctx context.Context) (pgxtype.Querier, error)
 	Close() error
 }
 

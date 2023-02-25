@@ -2,17 +2,20 @@ package workerpool
 
 import (
 	"context"
-	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"log"
 
 	"github.com/ShishkovEM/amazing-shortener/internal/app/interfaces"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
+
+	"github.com/jackc/pgx/v4"
 )
 
 type DeletionWorker struct {
-	ID       int
-	taskChan chan *models.DeletionTask
-	quit     chan bool
-	querier  interfaces.Queriable
+	ID               int
+	taskChan         chan *models.DeletionTask
+	quit             chan bool
+	activeConnection *pgx.Conn
+	querier          interfaces.Queriable
 }
 
 func NewDeletionWorker(channel chan *models.DeletionTask, ID int, querier interfaces.Queriable) *DeletionWorker {
@@ -39,7 +42,7 @@ func (dw *DeletionWorker) StartBackground() {
 
 func (dw *DeletionWorker) Stop() {
 	log.Printf("Closing worker %d\n", dw.ID)
-	err := dw.querier.Close()
+	err := dw.activeConnection.Close(context.Background())
 	if err != nil {
 		log.Printf("error closing DB querier: %v", err)
 	}
@@ -49,14 +52,18 @@ func (dw *DeletionWorker) Stop() {
 }
 
 func (dw *DeletionWorker) processDeletion(dt *models.DeletionTask) {
-	log.Printf("Worker %d processes deletion of url %s\n", dw.ID, dt.UrlToDelete)
+	log.Printf("Worker %d processes deletion of url %s\n", dw.ID, dt.URLToDelete)
 
-	q, err := dw.querier.GetQuerier()
-	if err != nil {
-		log.Printf("error getting execer: %v", err)
+	if dw.activeConnection == nil {
+		var conn *pgx.Conn
+		conn, err := dw.querier.GetConn(context.Background())
+		if err != nil {
+			log.Fatalf("error establising connection: %v", err)
+		}
+		dw.activeConnection = conn
 	}
 
-	_, err = q.Exec(context.Background(), "UPDATE urls SET is_deleted = true WHERE short_uri = $1 AND user_id = $2", dt.UrlToDelete, dt.UserID)
+	_, err := dw.activeConnection.Exec(context.Background(), "UPDATE urls SET is_deleted = true WHERE short_uri = $1 AND user_id = $2", dt.URLToDelete, dt.UserID)
 	if err != nil {
 		log.Printf("error updating URL: %v", err)
 	}
