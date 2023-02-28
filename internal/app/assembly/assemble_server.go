@@ -81,6 +81,12 @@ func AssembleAndStartAppWithFileStorage(allConfigs config.LinkServiceConfig) {
 		linkStorage = storage.NewLinkStoreInMemory()
 	}
 
+	// Создаём воркер-пул для обработки DELETE-запросов
+	var allDeletionTasks []*models.DeletionTask
+	asyncDeletionProcessor := workerpool.NewMemDeletionPool(allDeletionTasks, runtime.NumCPU(), linkStorage)
+	linkStorage.DeletionProcessor = asyncDeletionProcessor
+	go asyncDeletionProcessor.RunBackground()
+
 	// Создаём сервис для обработки create- и read- операций
 	linkService := service.NewLinkService(linkStorage, serviceConfigsWithFileStorage.BaseURL+"/")
 

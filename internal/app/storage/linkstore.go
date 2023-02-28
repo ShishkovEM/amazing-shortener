@@ -8,7 +8,6 @@ import (
 	"github.com/ShishkovEM/amazing-shortener/internal/app/interfaces"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/models"
 	"github.com/ShishkovEM/amazing-shortener/internal/app/repository"
-
 	"github.com/speps/go-hashids"
 )
 
@@ -16,9 +15,10 @@ import (
 type LinkStore struct {
 	sync.Mutex
 
-	Links      map[string]models.Link
-	nextID     int
-	Repository interfaces.LinkRepository
+	Links             map[string]models.Link
+	nextID            int
+	Repository        interfaces.LinkRepository
+	DeletionProcessor interfaces.DeletionProcessor
 }
 
 // NewLinkStore Создаёт новый LinkStore
@@ -132,39 +132,29 @@ func (ls *LinkStore) GetLinksByUserID(userID uint32) []models.Link {
 	return userLinks
 }
 
-func (ls *LinkStore) DeleteUserRecordsByShortURLs(userID uint32, shortIDs []string) error {
+func (ls *LinkStore) DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string) {
 	ls.Lock()
 	defer ls.Unlock()
 
-	// создаем канал для передачи id удаляемых ссылок в воркер
-	idsToDelete := make(chan string, len(shortIDs))
-	for _, id := range shortIDs {
-		idsToDelete <- id
+	for _, shortURL := range shortURLs {
+		newTask := models.NewDeletionTask(userID, shortURL)
+		ls.DeletionProcessor.AddTask(newTask)
 	}
-	close(idsToDelete)
+}
 
-	// запускаем воркер для пометки удаляемых ссылок
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for id := range idsToDelete {
-			if entry, ok := ls.Links[id]; ok {
-				if entry.UserID == userID {
-					entry.IsDeleted = true
-					ls.Links[id] = entry
-				}
-			}
-		}
-		if ls.Repository != nil {
-			Refresh(ls, ls.Repository)
-		}
-	}()
+func (ls *LinkStore) DeleteOne(dt *models.DeletionTask) {
+	ls.Lock()
+	defer ls.Unlock()
 
-	// ждем завершения работы воркера
-	wg.Wait()
+	newLink := ls.Links[dt.URLToDelete]
+	if newLink.UserID == dt.UserID {
+		newLink.IsDeleted = true
+		ls.Links[dt.URLToDelete] = newLink
+	}
 
-	return nil
+	if ls.Repository != nil {
+		Refresh(ls, ls.Repository)
+	}
 }
 
 func Refresh(inMemory interfaces.InMemoryLinkStorage, fileRepository interfaces.LinkRepository) {

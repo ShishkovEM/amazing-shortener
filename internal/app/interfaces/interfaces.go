@@ -13,6 +13,8 @@ type InMemoryLinkStorage interface {
 	GetLink(short string) (models.Link, error)
 	GetAll() []*models.Link
 	GetSize() int
+	DeleteUserRecordsByShortURLs(userID uint32, shortURLs []string)
+	DeleteOne(dt *models.DeletionTask)
 }
 
 type LinkRepository interface {
