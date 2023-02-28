@@ -83,11 +83,5 @@ func (ls *LinkService) deleteUserURLsHandler(w http.ResponseWriter, req *http.Re
 
 	ls.store.DeleteUserRecordsByShortURLs(userID, request)
 
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		http.Error(w, `{"error":"Failed to delete user records by short url"}`, http.StatusBadRequest)
-		return
-	}
-
 	w.WriteHeader(http.StatusAccepted)
 }
