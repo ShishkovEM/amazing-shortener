@@ -1,29 +1,23 @@
 package main
 
 import (
-	"github.com/go-chi/chi/v5"
-	"log"
-	"net/http"
-
-	"github.com/ShishkovEM/amazing-shortener/internal/app/service"
-	"github.com/ShishkovEM/amazing-shortener/internal/app/storage"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/assembly"
+	"github.com/ShishkovEM/amazing-shortener/internal/app/config"
 )
 
-const (
-	linkServiceHost = "localhost"
-	linkServicePort = "8080"
+var (
+	lsc config.LinkServiceConfig
 )
 
 func main() {
-	linkStorage := storage.NewLinkStore()
-	linkService := service.NewLinkService(linkStorage, "http://"+linkServiceHost+":"+linkServicePort+"/")
-	router := chi.NewRouter()
-	router.Mount("/", linkService.Routes())
-	err := http.ListenAndServe(
-		linkServiceHost+":"+linkServicePort, router,
-	)
-	if err != nil {
-		log.Printf("Error starting linkService: %s\n", err)
-		return
+
+	// Считываем конфигурацию приложения
+	lsc.Parse()
+
+	// Собираем и запускаем при
+	if lsc.DatabaseDSN != "" {
+		assembly.AssembleAndStartAppWithStandAloneDB(lsc)
+	} else {
+		assembly.AssembleAndStartAppWithFileStorage(lsc)
 	}
 }

@@ -1,15 +1,21 @@
 package storage
 
-import "testing"
+import (
+	"testing"
+)
 
 const (
 	testedLongURL = "http://ya.ru/"
+	testUserID    = 999
 )
 
 func TestCreateAndGetLink(t *testing.T) {
 	// Создаём и сохраняем запись об одной ссылке
-	ls := NewLinkStore()
-	short := ls.CreateLink(testedLongURL)
+	ls := NewLinkStoreInMemory()
+	short, err := ls.CreateLink(testedLongURL, testUserID)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Получаем ссылку по short. Ничего не получаем по другому аргументу
 	link, err := ls.GetLink(short)
